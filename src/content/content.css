@@ -1,0 +1,266 @@
+#fpm-root,
+#fpm-root * {
+  all: revert;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+}
+
+#fpm-root {
+  position: fixed;
+  z-index: 2147483000;
+  right: 20px;
+  bottom: 20px;
+}
+
+#fpm-toggle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: #12a17d;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(18, 30, 40, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#fpm-toggle:hover {
+  background: #0c7f62;
+}
+
+#fpm-panel {
+  position: absolute;
+  right: 0;
+  bottom: 58px;
+  width: 300px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(18, 30, 40, 0.24);
+  border: 1px solid #e1e6ea;
+  padding: 12px;
+  color: #1c2733;
+}
+
+.fpm-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.fpm-panel-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.fpm-icon-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7785;
+  padding: 2px 6px;
+}
+
+.fpm-icon-btn:hover {
+  color: #1c2733;
+}
+
+.fpm-status {
+  font-size: 11px;
+  color: #6b7785;
+  background: #f7f9fa;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.fpm-status.fpm-status-on {
+  background: #e6f7f2;
+  color: #0c7f62;
+}
+
+.fpm-add-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.fpm-add-row input[type="color"] {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #e1e6ea;
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+}
+
+.fpm-add-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e1e6ea;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 12.5px;
+}
+
+.fpm-primary-btn {
+  background: #12a17d;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fpm-primary-btn:hover {
+  background: #0c7f62;
+}
+
+.fpm-section-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7785;
+  font-weight: 700;
+  margin: 10px 0 6px;
+}
+
+.fpm-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+
+.fpm-swatch {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.fpm-swatch:hover {
+  outline: 2px solid #12a17d;
+  outline-offset: 1px;
+}
+
+.fpm-swatch-sm {
+  width: 22px;
+  height: 22px;
+}
+
+.fpm-empty {
+  font-size: 11.5px;
+  color: #6b7785;
+  margin: 2px 0 0;
+  line-height: 1.4;
+}
+
+.fpm-history {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fpm-history-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+}
+
+.fpm-swatch-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fpm-hex {
+  font-family: Consolas, monospace;
+  flex: 1;
+}
+
+.fpm-source-tag {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #f7f9fa;
+  color: #6b7785;
+}
+
+.fpm-panel-foot {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.fpm-link-btn {
+  background: none;
+  border: none;
+  color: #0c7f62;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fpm-link-btn:hover {
+  text-decoration: underline;
+}
+
+#fpm-toast {
+  position: fixed;
+  z-index: 2147483001;
+  right: 20px;
+  bottom: 78px;
+  background: #1c2733;
+  color: #fff;
+  font-size: 12px;
+  font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  padding: 6px 12px;
+  border-radius: 999px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+
+#fpm-toast.fpm-toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Injected "My Palette" box inside Flaticon's own editor panel --- */
+#fpm-inline-box {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px dashed #12a17d;
+  border-radius: 8px;
+  background: #e6f7f2;
+}
+
+.fpm-inline-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0c7f62;
+  margin-bottom: 6px;
+}
+
+.fpm-inline-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

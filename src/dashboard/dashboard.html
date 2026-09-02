@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>My Palette for Flaticon — Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css" />
+  </head>
+  <body>
+    <div id="welcomeBanner" class="banner" hidden>
+      <div class="banner-inner">
+        <strong>Welcome! 🎨</strong>
+        Save your favorite colors here, then visit any
+        <a href="https://www.flaticon.com/" target="_blank" rel="noopener">Flaticon</a> icon page —
+        your palette and history will be one click away, for free.
+        <button id="dismissWelcome" class="link-btn">Got it</button>
+      </div>
+    </div>
+
+    <header class="app-header">
+      <div class="brand">
+        <img src="../../icons/icon48.png" width="28" height="28" alt="" />
+        <div>
+          <h1>My Palette for Flaticon</h1>
+          <p>Free custom color palettes &amp; history for flaticon.com icons</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="exportBtn" class="ghost-btn">Export JSON</button>
+        <label class="ghost-btn file-label">
+          Import JSON
+          <input type="file" id="importInput" accept="application/json" hidden />
+        </label>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section class="card">
+        <h2>Add a color</h2>
+        <form id="addForm" class="add-row">
+          <input type="color" id="addColorInput" value="#12a17d" aria-label="Pick a color" />
+          <input type="text" id="addHexInput" placeholder="#12A17D" maxlength="7" aria-label="Hex value" />
+          <input type="text" id="addNameInput" placeholder="Name (optional)" maxlength="40" aria-label="Color name" />
+          <button type="submit" class="primary-btn">Add to palette</button>
+        </form>
+        <p id="addError" class="error-text" hidden></p>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>My palette</h2>
+          <span id="paletteCount" class="count-badge">0 colors</span>
+        </div>
+        <p class="hint">Drag to reorder. Click a swatch to copy its hex code.</p>
+        <div id="paletteGrid" class="palette-grid"></div>
+        <p id="paletteEmpty" class="empty-text" hidden>
+          No colors yet — add one above, or use the panel that appears on Flaticon icon pages.
+        </p>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>History</h2>
+          <div class="card-head-actions">
+            <span id="historyCount" class="count-badge muted">0 entries</span>
+            <button id="clearHistoryBtn" class="ghost-btn small">Clear history</button>
+          </div>
+        </div>
+        <p class="hint">
+          Every color you apply from your palette, and every color you pick with Flaticon's own color
+          tool, is logged here automatically.
+        </p>
+        <div id="historyTable" class="history-table"></div>
+        <p id="historyEmpty" class="empty-text" hidden>
+          Nothing yet. Open a Flaticon icon page and start picking colors.
+        </p>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <span id="toast" class="toast" hidden></span>
+      <p>
+        My Palette for Flaticon is free and open source, and stores all your data locally in your
+        browser (synced via your Google account if Chrome sync is on). Nothing is sent to any
+        external server. See the <a href="#" id="privacyLink">privacy policy</a>.
+      </p>
+    </footer>
+
+    <script src="../shared/storage.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>My Palette for Flaticon</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="pop-header">
+      <div class="pop-title">
+        <img src="../../icons/icon48.png" width="20" height="20" alt="" />
+        <span>My Palette</span>
+      </div>
+      <button id="openDashboard" class="link-btn" title="Open full dashboard">Dashboard ↗</button>
+    </header>
+
+    <section class="pop-section">
+      <div class="pop-section-head">
+        <h2>Add a color</h2>
+      </div>
+      <form id="addForm" class="add-row">
+        <input type="color" id="addColorInput" value="#12a17d" aria-label="Pick a color" />
+        <input type="text" id="addHexInput" placeholder="#12A17D" maxlength="7" aria-label="Hex value" />
+        <button type="submit" class="primary-btn">Add</button>
+      </form>
+      <p id="addError" class="error-text" hidden></p>
+    </section>
+
+    <section class="pop-section">
+      <div class="pop-section-head">
+        <h2>My palette</h2>
+        <span id="paletteCount" class="count-badge">0</span>
+      </div>
+      <div id="paletteGrid" class="swatch-grid"></div>
+      <p id="paletteEmpty" class="empty-text">No colors saved yet. Add one above, or pick a color on any Flaticon icon page.</p>
+    </section>
+
+    <section class="pop-section">
+      <div class="pop-section-head">
+        <h2>Recent history</h2>
+        <button id="clearHistoryBtn" class="link-btn small">Clear</button>
+      </div>
+      <div id="historyList" class="history-list"></div>
+      <p id="historyEmpty" class="empty-text">Colors you pick on Flaticon will show up here automatically.</p>
+    </section>
+
+    <footer class="pop-footer">
+      <span id="toast" class="toast" hidden></span>
+      <span class="footer-note">Free &amp; open source · Works on flaticon.com</span>
+    </footer>
+
+    <script src="../shared/storage.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+# Build output
+/dist/
+*.zip
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+
+# Local scratch
+/tmp/

@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "My Palette for Flaticon — Free Custom Colors",
+  "short_name": "My Palette for Flaticon",
+  "version": "1.0.0",
+  "description": "Save unlimited custom color palettes for free and apply them to Flaticon icons in one click. Automatically keeps a history of every color you pick, on or off Flaticon.",
+  "author": "your-support-email@example.com",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "My Palette for Flaticon"
+  },
+  "options_page": "src/dashboard/dashboard.html",
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["https://www.flaticon.com/*"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.flaticon.com/*"
+      ],
+      "js": ["src/shared/storage.js", "src/content/content.js"],
+      "css": ["src/content/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*"],
+      "matches": ["https://www.flaticon.com/*"]
+    }
+  ],
+  "minimum_chrome_version": "102"
+}

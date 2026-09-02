@@ -1,0 +1,21 @@
+/* Shared design tokens for popup, dashboard and the injected content UI. */
+:root {
+  --fpm-accent: #12a17d;
+  --fpm-accent-dark: #0c7f62;
+  --fpm-accent-light: #e6f7f2;
+  --fpm-text: #1c2733;
+  --fpm-text-muted: #6b7785;
+  --fpm-border: #e1e6ea;
+  --fpm-bg: #ffffff;
+  --fpm-bg-soft: #f7f9fa;
+  --fpm-danger: #e5484d;
+  --fpm-radius: 10px;
+  --fpm-radius-sm: 6px;
+  --fpm-shadow: 0 8px 24px rgba(18, 30, 40, 0.14);
+  --fpm-font: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+}
+
+.fpm-reset,
+.fpm-reset * {
+  box-sizing: border-box;
+}

@@ -1,0 +1,53 @@
+name: Validate and package extension
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate manifest.json is well-formed
+        run: python3 -c "import json; json.load(open('manifest.json'))"
+
+      - name: Validate every referenced JS/CSS/HTML file exists
+        run: |
+          python3 - << 'PY'
+          import json, os, sys
+          m = json.load(open("manifest.json"))
+          missing = []
+
+          def check(p):
+              if not os.path.isfile(p):
+                  missing.append(p)
+
+          for k in ("16", "48", "128"):
+              check(m["icons"][k])
+          check(m["action"]["default_popup"])
+          for k in ("16", "48", "128"):
+              check(m["action"]["default_icon"][k])
+          check(m["options_page"])
+          check(m["background"]["service_worker"])
+          for cs in m["content_scripts"]:
+              for f in cs.get("js", []) + cs.get("css", []):
+                  check(f)
+
+          if missing:
+              print("Missing files referenced by manifest.json:", missing)
+              sys.exit(1)
+          print("All manifest-referenced files exist.")
+          PY
+
+      - name: Package zip
+        run: bash scripts/package.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension-zip
+          path: dist/*.zip
