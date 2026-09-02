@@ -8,6 +8,14 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`Uncaught TypeError: Cannot read properties of undefined (reading 'getPalette'/'getHistory')`
+  on every Flaticon page.** `storage.js` declares `const FlaticonPaletteStorage = (...)()` at the
+  top level; a top-level `const`/`let` is only a global *binding* (visible as a bare identifier
+  to other classic scripts sharing the same scope — how `popup.js`/`dashboard.js` already used
+  it), not a `window` property the way `var`/function declarations are. `content.js` referenced
+  `window.FlaticonPaletteStorage` everywhere, which was therefore always `undefined`. Fixed by
+  explicitly assigning `window.FlaticonPaletteStorage = FlaticonPaletteStorage` at the end of
+  `storage.js`.
 - **Colors picked with Flaticon's own color tool weren't being captured.** The capture logic
   only watched for *new* `<li>` elements being added to `#last-icon-colors`, but Flaticon
   actually keeps a single node there and updates its `data-actual`/`style` attributes in place
