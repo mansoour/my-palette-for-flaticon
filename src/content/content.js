@@ -7,34 +7,36 @@
  *     Lets the user browse/add/copy their saved colors and recent history without
  *     depending on any Flaticon-specific DOM structure.
  *
- *  2. ENHANCED (best effort) — when Flaticon's own icon color-editor is open on the
- *     page (the panel with "Select a color from the icon" / "Choose a new color" /
- *     "History"), the script tries to:
- *       a. Mirror any color that appears in Flaticon's own "History" swatch list
- *          into our extension's history (source: "flaticon-picker").
- *       b. Listen to any native <input type="color"> Flaticon uses for its color
- *          wheel picker and record changes the same way.
- *       c. Render our saved palette as an extra section inside their panel, next
- *          to the (paid-only) "Custom palette" feature, so the user can click a
- *          saved color to copy it and try to auto-apply it to the selected part
- *          of the icon via that same native color input.
+ *  2. EMBEDDED (best effort) — Flaticon's own icon editor renders three lists with
+ *     identical markup: `#svg-icon-colors` ("Select a color from the icon"),
+ *     `#last-icon-colors` ("History"), each `<li class="color"><button data-original
+ *     data-actual style="background:#hex"></button></li>`. Clicking any button in
+ *     `#last-icon-colors` re-applies that color to the icon — Flaticon must be using
+ *     a listener bound on that list (or an ancestor) that reacts to clicks on any
+ *     `.color button` inside it, since Flaticon's own JS keeps appending fresh,
+ *     clickable entries there as you pick colors. So instead of reverse-engineering
+ *     their recolor logic, we inject real `<li class="color">` entries — one per
+ *     saved palette color — directly into that same `#last-icon-colors` list. A
+ *     click on one of ours reaches Flaticon's own handler exactly like a click on a
+ *     genuine history entry would, and re-applies the color the normal way.
  *
- *     All of layer 2 is wrapped in try/catch and re-scanned on DOM mutations, since
- *     it depends on Flaticon's live markup (last verified against flaticon.com in
+ *     The same list is also how we capture colors: every time Flaticon adds a new
+ *     (non-ours) entry to `#last-icon-colors` — whether the user clicked an icon's
+ *     own color or dialed one in with Flaticon's "Choose a new color" picker (a
+ *     Pickr instance, `#icon-edit-color-picker`) — we mirror that hex into this
+ *     extension's history, so it survives page reloads instead of vanishing with
+ *     Flaticon's own in-memory, per-visit history.
+ *
+ *     All of this is wrapped in try/catch and re-scanned on DOM mutations, since it
+ *     depends on Flaticon's live markup (last verified against flaticon.com in
  *     September 2026). If Flaticon changes their editor's structure, layer 1 keeps
  *     working regardless — see README.md "How it works" / "Known limitations".
  */
 (function () {
   "use strict";
 
-  const HEX_RE = /^#([0-9a-f]{6}|[0-9a-f]{3})$/i;
-
   function normalizeHex(v) {
     return window.FlaticonPaletteStorage ? window.FlaticonPaletteStorage.normalizeHex(v) : null;
-  }
-
-  function rgbToHex(str) {
-    return normalizeHex(str);
   }
 
   function debounce(fn, ms) {
@@ -52,17 +54,6 @@
       pageTitle: document.title.replace(/\s*\|\s*Flaticon.*$/i, "").trim(),
       iconId: m ? m[1] : "",
     };
-  }
-
-  function readSwatchColor(el) {
-    if (!el) return null;
-    const inline = el.style && el.style.backgroundColor;
-    if (inline) {
-      const hex = rgbToHex(inline);
-      if (hex) return hex;
-    }
-    const computed = window.getComputedStyle(el).backgroundColor;
-    return rgbToHex(computed);
   }
 
   // ---------------------------------------------------------------------
@@ -176,8 +167,11 @@
       btn.type = "button";
       btn.className = "fpm-swatch";
       btn.style.background = c.hex;
-      btn.title = (c.name ? c.name + " — " : "") + c.hex + " (click to apply / copy)";
-      btn.addEventListener("click", () => applyOrCopyColor(c.hex));
+      btn.title = (c.name ? c.name + " — " : "") + c.hex + " (click to copy)";
+      btn.addEventListener("click", async () => {
+        const ok = await copyText(c.hex);
+        showToast(ok ? `Copied ${c.hex}` : c.hex);
+      });
       grid.appendChild(btn);
     });
   }
@@ -200,7 +194,11 @@
       const dot = document.createElement("span");
       dot.className = "fpm-swatch-dot";
       dot.style.background = h.hex;
-      dot.addEventListener("click", () => applyOrCopyColor(h.hex));
+      dot.title = "Copy " + h.hex;
+      dot.addEventListener("click", async () => {
+        const ok = await copyText(h.hex);
+        showToast(ok ? `Copied ${h.hex}` : h.hex);
+      });
 
       const hex = document.createElement("span");
       hex.className = "fpm-hex";
@@ -216,181 +214,214 @@
   }
 
   // ---------------------------------------------------------------------
-  // Layer 2: best-effort integration with Flaticon's own editor
+  // Layer 2: embed directly into Flaticon's editor
   // ---------------------------------------------------------------------
 
-  let nativeColorInput = null; // last-seen <input type="color"> inside the editor, if any
-  let editorConnected = false;
+  // Flaticon's editor markup, keyed so a future redesign only needs updates here.
+  const FT_SEL = {
+    historyList: "#last-icon-colors",
+    iconColorsList: "#svg-icon-colors",
+    paletteSection: "#section-color-palette",
+    historyLabel: ".detail__editor__colors p.history, .detail__editor__colors p.clear.history",
+    pickrResult: "#icon-edit-color-picker .pcr-result",
+  };
 
+  function findHistoryList() {
+    return (
+      document.querySelector(FT_SEL.historyList) ||
+      (() => {
+        // Fallback if Flaticon renames the #id: look for the <ul class="colors ..."> that
+        // immediately follows a label whose text is exactly "History".
+        const label = Array.from(document.querySelectorAll("p,div,span")).find(
+          (el) => el.children.length === 0 && el.textContent.trim().toLowerCase() === "history"
+        );
+        if (!label) return null;
+        let sib = label.nextElementSibling;
+        while (sib && !(sib.tagName === "UL" && /\bcolors\b/.test(sib.className))) {
+          sib = sib.nextElementSibling;
+        }
+        return sib || null;
+      })()
+    );
+  }
+
+  function extractHex(button) {
+    if (!button) return null;
+    return (
+      normalizeHex(button.getAttribute("data-actual")) ||
+      normalizeHex(button.getAttribute("data-original")) ||
+      normalizeHex(button.style.backgroundColor)
+    );
+  }
+
+  function buildOwnSwatchLi(hex, title) {
+    const li = document.createElement("li");
+    li.className = "color fpm-own-swatch";
+    li.dataset.fpmOwn = "1";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("data-original", hex);
+    btn.setAttribute("data-actual", hex);
+    btn.style.background = hex;
+    if (title) btn.title = title + " — from My Palette";
+
+    const removeBtn = document.createElement("span");
+    removeBtn.className = "fpm-remove-x";
+    removeBtn.textContent = "×";
+    removeBtn.title = "Remove from My Palette";
+    removeBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const list = await window.FlaticonPaletteStorage.getPalette();
+      const match = list.find((c) => c.hex === hex);
+      if (match) await window.FlaticonPaletteStorage.removeColor(match.id);
+      li.remove();
+    });
+
+    // Don't block Flaticon's own click handling (which applies the color to the
+    // icon) — just also log this as "applied" in our own history for the record.
+    btn.addEventListener(
+      "click",
+      () => {
+        window.FlaticonPaletteStorage.addHistoryEntry({ hex, source: "applied-to-icon", ...getIconContext() });
+      },
+      { capture: true }
+    );
+
+    li.append(btn, removeBtn);
+    return li;
+  }
+
+  function buildAddControlLi() {
+    const li = document.createElement("li");
+    li.className = "color fpm-add-swatch";
+    li.dataset.fpmOwn = "1";
+    li.dataset.fpmControl = "add";
+    li.title = "Save a new color to My Palette";
+
+    const label = document.createElement("label");
+    label.className = "fpm-add-swatch-label";
+
+    const input = document.createElement("input");
+    input.type = "color";
+    input.value = "#12a17d";
+    input.className = "fpm-add-swatch-input";
+
+    const plus = document.createElement("span");
+    plus.className = "fpm-add-swatch-plus";
+    plus.textContent = "+";
+
+    input.addEventListener("change", async () => {
+      const hex = normalizeHex(input.value);
+      if (!hex) return;
+      await window.FlaticonPaletteStorage.addColor(hex, "", "dashboard");
+      showToast(`Saved ${hex} to My Palette`);
+      syncOwnSwatches();
+      renderPanelGrid();
+    });
+
+    label.append(input, plus);
+    li.append(label);
+    return li;
+  }
+
+  let historyListEl = null;
+
+  /** Add/remove our own <li> entries in the history list so it matches the saved palette. */
+  async function syncOwnSwatches() {
+    if (!historyListEl || !document.contains(historyListEl)) return;
+    const palette = await window.FlaticonPaletteStorage.getPalette();
+    const paletteHexes = new Set(palette.map((c) => c.hex));
+
+    // Remove stale own-swatches (deleted from the palette elsewhere, e.g. the dashboard).
+    Array.from(historyListEl.querySelectorAll('li[data-fpm-own="1"].fpm-own-swatch')).forEach((li) => {
+      const hex = extractHex(li.querySelector("button"));
+      if (!paletteHexes.has(hex)) li.remove();
+    });
+
+    // Add any palette colors not yet represented.
+    const present = new Set(
+      Array.from(historyListEl.querySelectorAll('li[data-fpm-own="1"].fpm-own-swatch button')).map(extractHex)
+    );
+    palette.forEach((c) => {
+      if (present.has(c.hex)) return;
+      historyListEl.appendChild(buildOwnSwatchLi(c.hex, c.name));
+    });
+
+    // Make sure the "+" add control is present and last.
+    let addLi = historyListEl.querySelector('li[data-fpm-control="add"]');
+    if (!addLi) {
+      addLi = buildAddControlLi();
+      historyListEl.appendChild(addLi);
+    } else {
+      historyListEl.appendChild(addLi); // keep it last
+    }
+  }
+
+  function watchHistoryList(ul) {
+    const mo = new MutationObserver((mutations) => {
+      let sawForeignAddition = false;
+      mutations.forEach((m) => {
+        m.addedNodes.forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
+          if (node.dataset && node.dataset.fpmOwn === "1") return; // ours — ignore
+          const hex = extractHex(node.querySelector("button"));
+          if (!hex) return;
+          sawForeignAddition = true;
+          window.FlaticonPaletteStorage.addHistoryEntry({
+            hex,
+            source: "flaticon-picker",
+            ...getIconContext(),
+          }).then(() => renderPanelHistory());
+        });
+      });
+      if (sawForeignAddition) {
+        // Flaticon may have re-rendered the list; make sure our own entries are still there.
+        syncOwnSwatches();
+      }
+    });
+    mo.observe(ul, { childList: true });
+  }
+
+  function watchPickrResultInput() {
+    const input = document.querySelector(FT_SEL.pickrResult);
+    if (!input || input.dataset.fpmWatched) return;
+    input.dataset.fpmWatched = "1";
+    const record = () => {
+      const hex = normalizeHex(input.value);
+      if (!hex) return;
+      window.FlaticonPaletteStorage
+        .addHistoryEntry({ hex, source: "flaticon-picker", ...getIconContext() })
+        .then(() => renderPanelHistory());
+    };
+    input.addEventListener("change", record);
+    input.addEventListener("blur", record);
+  }
+
+  let editorConnected = false;
   function setStatus(connected) {
     editorConnected = connected;
     const el = panel.querySelector("#fpm-status");
     if (!el) return;
     el.textContent = connected
-      ? "🟢 Connected to Flaticon's color editor — click a color to apply it"
-      : "⚪ Open an icon's color editor (click an icon, then Edit) to enable one-click apply";
+      ? "🟢 Embedded in Flaticon's History — click any of your colors there to apply it"
+      : "⚪ Open an icon's color editor to see My Palette inside Flaticon's History section";
     el.classList.toggle("fpm-status-on", connected);
-  }
-
-  /** Try to programmatically set Flaticon's own color input so its app logic recolors the icon. */
-  function tryApplyToNativeInput(hex) {
-    const input =
-      (nativeColorInput && document.contains(nativeColorInput) && nativeColorInput) ||
-      document.querySelector('input[type="color"]');
-    if (!input) return false;
-    try {
-      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-      setter.call(input, hex);
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      nativeColorInput = input;
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  async function applyOrCopyColor(hex) {
-    const applied = tryApplyToNativeInput(hex);
-    const copied = await copyText(hex);
-    await window.FlaticonPaletteStorage.addHistoryEntry({
-      hex,
-      source: "applied-to-icon",
-      ...getIconContext(),
-    });
-    renderPanelHistory();
-    if (applied) {
-      showToast(`Applied ${hex} — also copied`);
-    } else if (copied) {
-      showToast(`Copied ${hex} — paste it into Flaticon's color picker`);
-    } else {
-      showToast(hex);
-    }
-  }
-
-  /** Find a heading-ish element whose trimmed text matches `text` (case-insensitive, exact). */
-  function findHeadingByText(text) {
-    const candidates = document.querySelectorAll("h1,h2,h3,h4,h5,h6,div,span,p,label");
-    const wanted = text.toLowerCase();
-    for (const el of candidates) {
-      if (el.children.length > 0) continue; // want leaf nodes only
-      const t = (el.textContent || "").trim().toLowerCase();
-      if (t === wanted) return el;
-    }
-    return null;
-  }
-
-  /** Given the "History" label, find the sibling/child container that holds its color swatches. */
-  function findSwatchContainerNear(labelEl) {
-    if (!labelEl) return null;
-    let container = labelEl.parentElement;
-    for (let depth = 0; depth < 4 && container; depth++) {
-      const swatchLike = Array.from(container.querySelectorAll("*")).filter((el) => {
-        if (el === labelEl || el.contains(labelEl)) return false;
-        if (el.children.length > 0) return false;
-        const bg = window.getComputedStyle(el).backgroundColor;
-        if (!bg || bg === "rgba(0, 0, 0, 0)" || bg === "transparent") return false;
-        const rect = el.getBoundingClientRect();
-        return rect.width > 0 && rect.width < 60 && rect.height > 0 && rect.height < 60;
-      });
-      if (swatchLike.length > 0) {
-        return swatchLike[0].parentElement;
-      }
-      container = container.parentElement;
-    }
-    return null;
-  }
-
-  const observedSwatchContainers = new WeakSet();
-  const observedNativeInputs = new WeakSet();
-
-  function watchHistorySwatches(swatchContainer) {
-    if (!swatchContainer || observedSwatchContainers.has(swatchContainer)) return;
-    observedSwatchContainers.add(swatchContainer);
-
-    const mirrorChild = (node) => {
-      if (!(node instanceof Element)) return;
-      const hex = readSwatchColor(node);
-      if (!hex) return;
-      window.FlaticonPaletteStorage.addHistoryEntry({
-        hex,
-        source: "flaticon-picker",
-        ...getIconContext(),
-      }).then(() => renderPanelHistory());
-    };
-
-    Array.from(swatchContainer.children).forEach(mirrorChild);
-
-    const mo = new MutationObserver((mutations) => {
-      mutations.forEach((m) => m.addedNodes.forEach(mirrorChild));
-    });
-    mo.observe(swatchContainer, { childList: true });
-  }
-
-  function watchNativeColorInputs() {
-    document.querySelectorAll('input[type="color"]').forEach((input) => {
-      if (observedNativeInputs.has(input)) return;
-      observedNativeInputs.add(input);
-      nativeColorInput = input;
-      const record = () => {
-        window.FlaticonPaletteStorage.addHistoryEntry({
-          hex: input.value,
-          source: "flaticon-picker",
-          ...getIconContext(),
-        }).then(() => renderPanelHistory());
-      };
-      input.addEventListener("input", record);
-      input.addEventListener("change", record);
-    });
-  }
-
-  /** Inject a "My Palette (free)" mini section next to Flaticon's own "Custom palette" label. */
-  function injectPaletteIntoEditor() {
-    const customPaletteLabel = Array.from(document.querySelectorAll("div,span,p,button,a")).find(
-      (el) =>
-        el.children.length === 0 && /custom palette/i.test((el.textContent || "").trim()) && (el.textContent || "").trim().length < 40
-    );
-    if (!customPaletteLabel) return false;
-
-    const anchor = customPaletteLabel.closest("div") || customPaletteLabel.parentElement;
-    if (!anchor || anchor.dataset.fpmInjected) return true;
-    anchor.dataset.fpmInjected = "1";
-
-    const box = document.createElement("div");
-    box.id = "fpm-inline-box";
-    box.innerHTML = `<div class="fpm-inline-title">⭐ My Palette (free)</div><div class="fpm-inline-grid"></div>`;
-    anchor.insertAdjacentElement("afterend", box);
-
-    window.FlaticonPaletteStorage.getPalette().then((list) => {
-      const grid = box.querySelector(".fpm-inline-grid");
-      list.forEach((c) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "fpm-swatch fpm-swatch-sm";
-        btn.style.background = c.hex;
-        btn.title = c.hex + " (click to apply)";
-        btn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          applyOrCopyColor(c.hex);
-        });
-        grid.appendChild(btn);
-      });
-    });
-    return true;
   }
 
   function scanForEditor() {
     try {
-      watchNativeColorInputs();
+      watchPickrResultInput();
 
-      const historyLabel = findHeadingByText("History");
-      const swatchContainer = findSwatchContainerNear(historyLabel);
-      if (swatchContainer) watchHistorySwatches(swatchContainer);
+      const found = findHistoryList();
+      if (found && found !== historyListEl) {
+        historyListEl = found;
+        watchHistoryList(historyListEl);
+        syncOwnSwatches();
+      }
 
-      const injected = injectPaletteIntoEditor();
-
-      const connected = !!(document.querySelector('input[type="color"]') || swatchContainer || injected);
+      const connected = !!(historyListEl && document.contains(historyListEl));
       if (connected !== editorConnected) setStatus(connected);
     } catch (e) {
       // Defensive: Flaticon's markup may have changed. Layer 1 (floating panel) still works.
@@ -415,5 +446,6 @@
       renderPanelGrid();
       renderPanelHistory();
     }
+    syncOwnSwatches();
   });
 })();

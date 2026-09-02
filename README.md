@@ -42,23 +42,33 @@ The extension has two layers, so it stays useful even as Flaticon's website evol
 1. **Guaranteed layer — the floating panel.** A small 🎨 button is injected on every
    `flaticon.com` page. It works completely independently of Flaticon's own markup: add colors,
    browse your palette, copy any color to the clipboard, and see your recent history.
-2. **Enhanced layer — best-effort integration with Flaticon's editor.** When Flaticon's icon
-   color editor is open (the panel with *"Select a color from the icon"*, *"Choose a new color"*
-   and *"History"*), the content script tries to:
-   - Detect Flaticon's own **"History"** swatch list and mirror any new color that appears there
-     into this extension's history (tagged `Flaticon picker`).
-   - Listen to Flaticon's native color-picker input, if present, so a color you dial in with
-     their color wheel is captured the same way.
-   - Render your saved palette as an extra **"⭐ My Palette (free)"** box right next to Flaticon's
-     locked "Custom palette" feature, so you can click a saved color to copy it (and, when
-     possible, apply it directly by driving the same input Flaticon's own picker uses).
+2. **Embedded layer — directly inside Flaticon's own "History" list.** Flaticon's icon editor
+   renders the icon's colors, and its "History" of applied colors, as plain lists of
+   `<li class="color"><button data-actual="#hex" style="background:#hex"></button></li>`
+   elements (`#svg-icon-colors` and `#last-icon-colors`). Clicking a swatch in `#last-icon-colors`
+   re-applies that color to the icon — and since Flaticon keeps appending new, clickable entries
+   there as you pick colors, that click handling must live on the list itself (or an ancestor),
+   not on each individual button. So rather than reverse-engineering Flaticon's recolor logic,
+   this extension inserts one real `<li class="color">` per saved palette color directly into
+   `#last-icon-colors`, marked with a small teal ring, plus a dashed "+" swatch to save a new
+   color on the spot. Clicking one of your colors there reaches Flaticon's own click handling
+   exactly like a genuine history entry would, and recolors the icon the normal way — no
+   simulated events, no guessing at Flaticon's internals.
 
-Because layer 2 depends on Flaticon's live HTML (last verified against flaticon.com in
+   The same list is also how colors are captured: whenever Flaticon adds a *new, non-ours* entry
+   to `#last-icon-colors` — whether you clicked one of the icon's own colors or dialed one in
+   with Flaticon's "Choose a new color" wheel (a [Pickr](https://github.com/Simonwep/pickr)
+   instance) — this extension mirrors that hex into its own history (tagged `Flaticon picker`),
+   so it survives page reloads instead of vanishing with Flaticon's own in-memory, per-visit
+   history.
+
+Because layer 2 depends on Flaticon's live HTML (selectors captured from flaticon.com in
 September 2026) and Flaticon can change that at any time without notice, it is written
-defensively (feature-detected, wrapped in `try/catch`, re-scanned on DOM changes) and is allowed
-to silently do nothing if it can't find what it's looking for — layer 1 always keeps working. If
-you notice the "🟢 Connected to Flaticon's color editor" status never appears, please open an
-issue with a screenshot of the editor; selectors may just need an update (see
+defensively (feature-detected, wrapped in `try/catch`, re-scanned on DOM changes, with a text-based
+fallback if the `#last-icon-colors` id ever changes) and is allowed to silently do nothing if it
+can't find what it's looking for — layer 1 always keeps working. If you notice the "🟢 Embedded in
+Flaticon's History" status never appears on an icon page, please open an issue with a screenshot
+of the editor's "History" section; selectors may just need an update (see
 [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## Install
@@ -112,9 +122,9 @@ This produces `dist/my-palette-for-flaticon-<version>.zip`, ready to upload in t
 
 ## Known limitations
 
-- The "enhanced" auto-apply/auto-capture integration relies on heuristics over Flaticon's DOM
-  (matching visible text like "History" / "Custom palette", and any `<input type="color">` on
-  the page). It is not guaranteed to work if Flaticon redesigns their editor — the floating panel
+- The embedded History integration targets Flaticon's current `#last-icon-colors` /
+  `#svg-icon-colors` / `#icon-edit-color-picker` structure, with a text-based fallback if the ids
+  change. It is not guaranteed to work if Flaticon redesigns their editor — the floating panel
   (add / copy / manage colors) always works regardless.
 - `chrome.storage.sync` has a small quota, so the palette is capped at 500 colors; history (kept
   in `chrome.storage.local`) is capped at the most recent 200 entries. Use Export to keep a full

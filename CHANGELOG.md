@@ -8,17 +8,24 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Initial release.
 - Floating 🎨 palette panel injected on every `flaticon.com` page: add colors, browse your
-  saved palette, and view recent history without leaving the page.
+  saved palette, copy any color to the clipboard, and view recent history without leaving the
+  page.
+- **Embedded integration with Flaticon's own icon editor.** Flaticon renders both "Select a
+  color from the icon" and "History" as `<ul class="colors">` lists of
+  `<li class="color"><button data-actual="#hex" style="background:#hex"></button></li>`
+  elements (`#svg-icon-colors` / `#last-icon-colors`); clicking a swatch inside
+  `#last-icon-colors` re-applies that color to the icon via Flaticon's own click handling. This
+  extension inserts one real, matching `<li>` per saved palette color directly into
+  `#last-icon-colors` (ringed to stand out), plus a dashed "+" swatch to save a new color on the
+  spot — so clicking your colors there recolors the icon exactly like a native history entry,
+  with no simulated events. It also mirrors every *new* color Flaticon itself adds to that list
+  (from an icon-color click or its Pickr-based "Choose a new color" wheel) into this extension's
+  persistent history, so it survives page reloads instead of vanishing with Flaticon's own
+  in-memory, per-visit history.
 - Toolbar popup for quick add / quick access, with a badge showing the number of saved colors.
 - Full dashboard (options page): add/rename/reorder/delete palette colors, browse and search
   history, clear history, export/import as JSON.
-- Automatic history capture: colors applied from the extension are logged, and colors picked
-  with Flaticon's own color tool are detected (best effort) and logged too.
-- Best-effort integration with Flaticon's icon color editor: mirrors Flaticon's own "History"
-  swatches, listens to any native color-picker input, and injects a "⭐ My Palette (free)" box
-  next to Flaticon's paid-only "Custom palette" feature.
 - Shared `chrome.storage` wrapper (`src/shared/storage.js`) used by the popup, dashboard, and
   content script; palette synced via `chrome.storage.sync`, history kept in
   `chrome.storage.local`.
