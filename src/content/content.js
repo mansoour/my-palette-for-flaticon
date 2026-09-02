@@ -7,28 +7,34 @@
  *     Lets the user browse/add/copy their saved colors and recent history without
  *     depending on any Flaticon-specific DOM structure.
  *
- *  2. EMBEDDED (best effort) — Flaticon's own icon editor renders three lists with
- *     identical markup: `#svg-icon-colors` ("Select a color from the icon"),
- *     `#last-icon-colors` ("History"), each `<li class="color"><button data-original
- *     data-actual style="background:#hex"></button></li>`. Clicking any button in
- *     `#last-icon-colors` re-applies that color to the icon — Flaticon must be using
- *     a listener bound on that list (or an ancestor) that reacts to clicks on any
- *     `.color button` inside it, since Flaticon's own JS keeps appending fresh,
- *     clickable entries there as you pick colors. So instead of reverse-engineering
- *     their recolor logic, we inject real `<li class="color">` entries — one per
- *     saved palette color — directly into that same `#last-icon-colors` list. A
- *     click on one of ours reaches Flaticon's own handler exactly like a click on a
- *     genuine history entry would, and re-applies the color the normal way.
+ *  2. EMBEDDED (best effort) — Flaticon's own icon editor renders its swatch lists
+ *     (`#svg-icon-colors` "Select a color from the icon", `#last-icon-colors` "History") as
+ *     `<li class="color"><button data-original data-actual style="background:#hex"></button>
+ *     </li>`. Saved palette colors are inserted into `#last-icon-colors` with the same markup,
+ *     so they sit right there visually — but clicking one does NOT reach Flaticon's own recolor
+ *     logic: testing showed Flaticon must bind that per-button at creation time (or similarly
+ *     scope it to elements it made itself), since buttons inserted from outside stay inert, even
+ *     though something in Flaticon's code *does* still touch them generically (observed
+ *     stripping our tracking class/attribute off a clicked entry — see `ownNodes` below). So
+ *     applying a saved color instead drives Flaticon's own Pickr hex field
+ *     (`#icon-edit-color-picker .pcr-result`, a https://github.com/Simonwep/pickr instance) the
+ *     same way a real user typing into it would (`applyHexViaPickr`) — that field is a genuine
+ *     Flaticon-bound element, and it's confirmed to work since it's exactly what Flaticon's own
+ *     "Choose a new color" picker uses.
  *
- *     Capturing colors is trickier: Flaticon appears to keep a single "last used color" node
- *     and update its `data-actual` / `style` attributes *in place* rather than appending new
- *     `<li>`s (hence the id being singular — "last-icon-colors" — not "history"). So on top of
- *     watching for new list entries, a MutationObserver also watches for *attribute* changes on
- *     swatch buttons and on Pickr's palette drag-handle (`#icon-edit-color-picker`, a
- *     https://github.com/Simonwep/pickr instance) across the whole colors panel, debounced so a
- *     slider drag doesn't flood history with every intermediate frame. Typing a hex directly
- *     into Pickr's text field is covered separately (`input`/`change`), since that only changes
- *     a live DOM property, not an HTML attribute a MutationObserver can see.
+ *     Ownership tracking for our injected nodes uses a `WeakSet` of the actual DOM elements
+ *     (`ownNodes`), not a CSS class or data attribute — those get stripped by whatever generic
+ *     handling Flaticon runs over list items, which previously caused a stripped node to be
+ *     mistaken for "not ours" and re-injected as a duplicate.
+ *
+ *     Capturing colors is separate: Flaticon appears to keep a single "last used color" node
+ *     and update its `data-actual` / `style` attributes *in place* rather than only appending
+ *     new `<li>`s (hence the id being singular — "last-icon-colors" — not "history"). So on top
+ *     of watching for new list entries, a MutationObserver also watches for *attribute* changes
+ *     on swatch buttons and on Pickr's palette drag-handle across the whole colors panel,
+ *     debounced so a slider drag doesn't flood history with every intermediate frame. Typing a
+ *     hex directly into Pickr's text field is covered separately (`input`/`change`), since that
+ *     only changes a live DOM property, not an HTML attribute a MutationObserver can see.
  *
  *     All of this is wrapped in try/catch and re-scanned on DOM mutations, since it
  *     depends on Flaticon's live markup (last verified against flaticon.com in
@@ -267,10 +273,46 @@
     );
   }
 
+  // Identify "ours" by object reference, not by class/data-attribute. Flaticon's editor turns
+  // out to run some generic handling over every <li> in these lists (observed stripping our
+  // `fpm-own-swatch` class and `data-fpm-own` attribute off a clicked entry) — attributes it
+  // touches are the wrong thing to rely on for ownership. A WeakSet of the actual DOM nodes we
+  // created survives that; ownNodes covers every element we build (li/button/span/label/input)
+  // so a plain ancestor walk (isOwnNode) recognizes a click anywhere inside one of them.
+  const ownNodes = new WeakSet();
+  function isOwnNode(el) {
+    for (let node = el; node; node = node.parentElement) {
+      if (ownNodes.has(node)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Set Flaticon's own Pickr hex field and fire the same events a real user typing into it
+   * would — this is the one confirmed-working path (it's what a genuine picker pick goes
+   * through), unlike clicking a swatch we inserted ourselves, which Flaticon's per-element
+   * click binding never learns about since it didn't create that button.
+   */
+  function applyHexViaPickr(hex) {
+    const input = document.querySelector(FT_SEL.pickrResult);
+    if (!input) return false;
+    try {
+      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+      nativeSetter.call(input, hex);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Enter", code: "Enter", keyCode: 13, which: 13 }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function buildOwnSwatchLi(hex, title) {
     const li = document.createElement("li");
     li.className = "color fpm-own-swatch";
-    li.dataset.fpmOwn = "1";
+    li.dataset.fpmOwn = "1"; // best-effort visual/debug marker; ownNodes is the real source of truth
+    ownNodes.add(li);
 
     const btn = document.createElement("button");
     btn.type = "button";
@@ -278,29 +320,32 @@
     btn.setAttribute("data-actual", hex);
     btn.style.background = hex;
     if (title) btn.title = title + " — from My Palette";
+    ownNodes.add(btn);
 
     const removeBtn = document.createElement("span");
     removeBtn.className = "fpm-remove-x";
     removeBtn.textContent = "×";
     removeBtn.title = "Remove from My Palette";
+    ownNodes.add(removeBtn);
     removeBtn.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
       const list = await window.FlaticonPaletteStorage.getPalette();
       const match = list.find((c) => c.hex === hex);
       if (match) await window.FlaticonPaletteStorage.removeColor(match.id);
+      ownSwatchLis.delete(hex);
       li.remove();
     });
 
-    // Don't block Flaticon's own click handling (which applies the color to the
-    // icon) — just also log this as "applied" in our own history for the record.
-    btn.addEventListener(
-      "click",
-      () => {
-        window.FlaticonPaletteStorage.addHistoryEntry({ hex, source: "applied-to-icon", ...getIconContext() });
-      },
-      { capture: true }
-    );
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const applied = applyHexViaPickr(hex);
+      await window.FlaticonPaletteStorage.addHistoryEntry({ hex, source: "applied-to-icon", ...getIconContext() });
+      if (!applied) {
+        const copied = await copyText(hex);
+        showToast(copied ? `Copied ${hex} — Flaticon's color picker wasn't found here` : hex);
+      }
+    });
 
     li.append(btn, removeBtn);
     return li;
@@ -312,18 +357,22 @@
     li.dataset.fpmOwn = "1";
     li.dataset.fpmControl = "add";
     li.title = "Save a new color to My Palette";
+    ownNodes.add(li);
 
     const label = document.createElement("label");
     label.className = "fpm-add-swatch-label";
+    ownNodes.add(label);
 
     const input = document.createElement("input");
     input.type = "color";
     input.value = "#12a17d";
     input.className = "fpm-add-swatch-input";
+    ownNodes.add(input);
 
     const plus = document.createElement("span");
     plus.className = "fpm-add-swatch-plus";
     plus.textContent = "+";
+    ownNodes.add(plus);
 
     input.addEventListener("change", async () => {
       const hex = normalizeHex(input.value);
@@ -340,36 +389,40 @@
   }
 
   let historyListEl = null;
+  const ownSwatchLis = new Map(); // hex -> <li> currently believed to be in historyListEl
+  let addControlLi = null;
 
-  /** Add/remove our own <li> entries in the history list so it matches the saved palette. */
+  /** Add/remove our own <li> entries in the history list so it matches the saved palette.
+   *  Tracked entirely via `ownSwatchLis`/`addControlLi` (JS references), not DOM queries —
+   *  see the ownNodes comment above for why. */
   async function syncOwnSwatches() {
     if (!historyListEl || !document.contains(historyListEl)) return;
     const palette = await window.FlaticonPaletteStorage.getPalette();
     const paletteHexes = new Set(palette.map((c) => c.hex));
 
-    // Remove stale own-swatches (deleted from the palette elsewhere, e.g. the dashboard).
-    Array.from(historyListEl.querySelectorAll('li[data-fpm-own="1"].fpm-own-swatch')).forEach((li) => {
-      const hex = extractHex(li.querySelector("button"));
-      if (!paletteHexes.has(hex)) li.remove();
-    });
-
-    // Add any palette colors not yet represented.
-    const present = new Set(
-      Array.from(historyListEl.querySelectorAll('li[data-fpm-own="1"].fpm-own-swatch button')).map(extractHex)
-    );
-    palette.forEach((c) => {
-      if (present.has(c.hex)) return;
-      historyListEl.appendChild(buildOwnSwatchLi(c.hex, c.name));
-    });
-
-    // Make sure the "+" add control is present and last.
-    let addLi = historyListEl.querySelector('li[data-fpm-control="add"]');
-    if (!addLi) {
-      addLi = buildAddControlLi();
-      historyListEl.appendChild(addLi);
-    } else {
-      historyListEl.appendChild(addLi); // keep it last
+    // Drop entries no longer in the palette (deleted elsewhere, e.g. the dashboard).
+    for (const [hex, li] of Array.from(ownSwatchLis)) {
+      if (!paletteHexes.has(hex)) {
+        if (document.contains(li)) li.remove();
+        ownSwatchLis.delete(hex);
+      }
     }
+
+    // (Re)add anything missing — covers both "never added" and "Flaticon's own re-render
+    // dropped it from the DOM" (we still hold the reference, but document.contains says no).
+    palette.forEach((c) => {
+      const existing = ownSwatchLis.get(c.hex);
+      if (existing && document.contains(existing)) return;
+      const li = buildOwnSwatchLi(c.hex, c.name);
+      ownSwatchLis.set(c.hex, li);
+      historyListEl.appendChild(li);
+    });
+
+    // Make sure the "+" add control exists, is in the DOM, and stays last.
+    if (!addControlLi || !document.contains(addControlLi)) {
+      addControlLi = buildAddControlLi();
+    }
+    historyListEl.appendChild(addControlLi); // appendChild on an existing node just moves it
   }
 
   /**
@@ -393,7 +446,7 @@
    */
   function hexFromMutationTarget(target) {
     if (!(target instanceof Element)) return null;
-    if (target.closest('[data-fpm-own="1"]')) return null; // one of our own nodes — ignore
+    if (isOwnNode(target)) return null; // one of our own nodes — ignore
 
     // A swatch button in #svg-icon-colors or #last-icon-colors: read its *current* color,
     // regardless of whether it was the "style" or "data-actual" attribute that just changed.
@@ -435,7 +488,7 @@
         }
         m.addedNodes.forEach((node) => {
           if (!(node instanceof HTMLElement)) return;
-          if (node.dataset && node.dataset.fpmOwn === "1") return; // ours — ignore
+          if (isOwnNode(node)) return; // ours — ignore
           const btn = node.matches("button") ? node : node.querySelector("button");
           const hex = extractHex(btn);
           if (!hex) return;

@@ -8,6 +8,20 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Saved palette colors didn't apply to the icon when clicked, only ones picked with
+  Flaticon's own picker did.** Testing showed Flaticon must bind its recolor logic per-button
+  at creation time (or otherwise scope it to elements it made itself) — a `<li><button>` we
+  insert into `#last-icon-colors` from outside never gets that binding, even though it's visually
+  identical. Clicking a saved color now instead drives Flaticon's own Pickr hex field
+  (`#icon-edit-color-picker .pcr-result`) with the same events a real user typing into it would
+  fire — a genuine Flaticon-bound element, confirmed working since it's exactly what "Choose a
+  new color" uses.
+- **A clicked saved color could get silently duplicated in the History list.** Ownership of our
+  injected `<li>` elements was tracked via a CSS class and a `data-fpm-own` attribute — but
+  Flaticon's editor turns out to run some generic handling over every list item (observed
+  stripping that class/attribute off a clicked entry), which made the sync logic think a
+  still-present element was gone and re-insert a duplicate. Ownership is now tracked with a
+  `WeakSet` of the actual DOM elements, which attribute stripping can't affect.
 - **`Uncaught TypeError: Cannot read properties of undefined (reading 'getPalette'/'getHistory')`
   on every Flaticon page.** `storage.js` declares `const FlaticonPaletteStorage = (...)()` at the
   top level; a top-level `const`/`let` is only a global *binding* (visible as a bare identifier
