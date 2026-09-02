@@ -1,9 +1,10 @@
 (async function () {
   const els = {
     addForm: document.getElementById("addForm"),
-    addColorInput: document.getElementById("addColorInput"),
+    addPreview: document.getElementById("addPreview"),
     addHexInput: document.getElementById("addHexInput"),
     addError: document.getElementById("addError"),
+    openDashboardInline: document.getElementById("openDashboardInline"),
     paletteGrid: document.getElementById("paletteGrid"),
     paletteCount: document.getElementById("paletteCount"),
     paletteEmpty: document.getElementById("paletteEmpty"),
@@ -125,15 +126,18 @@
     });
   }
 
-  els.addColorInput.addEventListener("input", () => {
-    els.addHexInput.value = els.addColorInput.value;
+  // Note: deliberately a plain text field, not <input type="color"> — opening that native
+  // color-picker dialog steals focus from this popup, which Chrome treats as a blur and closes
+  // the popup before a color can be picked. See CHANGELOG.md.
+  els.addHexInput.addEventListener("input", () => {
+    const clean = FlaticonPaletteStorage.normalizeHex(els.addHexInput.value);
+    els.addPreview.style.background = clean || "transparent";
   });
 
   els.addForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     els.addError.hidden = true;
-    const raw = els.addHexInput.value || els.addColorInput.value;
-    const clean = FlaticonPaletteStorage.normalizeHex(raw);
+    const clean = FlaticonPaletteStorage.normalizeHex(els.addHexInput.value);
     if (!clean) {
       els.addError.textContent = "Enter a valid hex color, e.g. #12A17D";
       els.addError.hidden = false;
@@ -141,10 +145,13 @@
     }
     const { isNew } = await FlaticonPaletteStorage.addColor(clean, "", "dashboard");
     els.addHexInput.value = "";
+    els.addPreview.style.background = "transparent";
     await renderPalette();
     await renderHistory();
     showToast(isNew ? `Added ${clean}` : `${clean} already saved`);
   });
+
+  els.openDashboardInline.addEventListener("click", () => chrome.runtime.openOptionsPage());
 
   els.clearHistoryBtn.addEventListener("click", async () => {
     if (!confirm("Clear all color history? This can't be undone.")) return;

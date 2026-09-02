@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **Colors picked with Flaticon's own color tool weren't being captured.** The capture logic
+  only watched for *new* `<li>` elements being added to `#last-icon-colors`, but Flaticon
+  actually keeps a single node there and updates its `data-actual`/`style` attributes in place
+  (hence the singular id). Added an attribute-level `MutationObserver` across the whole colors
+  panel — covering swatch buttons and Pickr's palette drag-handle specifically (excluding its hue
+  and opacity handles, which share the same CSS class but don't reflect the real color) — plus a
+  plain `input`/`change` listener on Pickr's hex text field, which changes a live DOM property
+  no attribute observer can see. Slider drags are debounced so history isn't flooded with every
+  intermediate frame.
+- **Adding a color from the toolbar popup silently did nothing.** The popup used a native
+  `<input type="color">`; opening its OS color dialog moves focus away from the extension popup,
+  which Chrome treats as the popup losing focus and closes it before a color can be picked. The
+  popup's "Add a color" control is now a plain hex text field with a live swatch preview — the
+  dashboard and the in-page floating panel keep their color-wheel inputs, since those aren't
+  action popups and aren't affected.
+
 ## [1.0.0] — 2026-09-02
 
 ### Added

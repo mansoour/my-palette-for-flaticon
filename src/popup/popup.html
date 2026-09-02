@@ -19,11 +19,15 @@
         <h2>Add a color</h2>
       </div>
       <form id="addForm" class="add-row">
-        <input type="color" id="addColorInput" value="#12a17d" aria-label="Pick a color" />
+        <span id="addPreview" class="color-preview" aria-hidden="true"></span>
         <input type="text" id="addHexInput" placeholder="#12A17D" maxlength="7" aria-label="Hex value" />
         <button type="submit" class="primary-btn">Add</button>
       </form>
       <p id="addError" class="error-text" hidden></p>
+      <p class="hint-text">
+        Tip: pick visually from the 🎨 panel on any Flaticon page, or the
+        <button type="button" id="openDashboardInline" class="link-btn small">dashboard</button>.
+      </p>
     </section>
 
     <section class="pop-section">

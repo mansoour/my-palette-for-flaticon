@@ -90,14 +90,13 @@ body {
   gap: 6px;
 }
 
-.add-row input[type="color"] {
+.color-preview {
   width: 34px;
   height: 34px;
-  padding: 0;
+  flex-shrink: 0;
   border: 1px solid var(--fpm-border);
   border-radius: var(--fpm-radius-sm);
-  cursor: pointer;
-  background: none;
+  background: repeating-conic-gradient(#e1e6ea 0% 25%, #fff 0% 50%) 50% / 10px 10px;
 }
 
 .add-row input[type="text"] {
@@ -129,6 +128,19 @@ body {
   color: var(--fpm-danger);
   font-size: 11.5px;
   margin: 6px 0 0;
+}
+
+.hint-text {
+  font-size: 11px;
+  color: var(--fpm-text-muted);
+  margin: 6px 0 0;
+  line-height: 1.4;
+}
+
+.hint-text .link-btn {
+  padding: 0;
+  font-size: inherit;
+  font-weight: 700;
 }
 
 .swatch-grid {

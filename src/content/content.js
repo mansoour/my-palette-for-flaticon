@@ -20,12 +20,15 @@
  *     click on one of ours reaches Flaticon's own handler exactly like a click on a
  *     genuine history entry would, and re-applies the color the normal way.
  *
- *     The same list is also how we capture colors: every time Flaticon adds a new
- *     (non-ours) entry to `#last-icon-colors` — whether the user clicked an icon's
- *     own color or dialed one in with Flaticon's "Choose a new color" picker (a
- *     Pickr instance, `#icon-edit-color-picker`) — we mirror that hex into this
- *     extension's history, so it survives page reloads instead of vanishing with
- *     Flaticon's own in-memory, per-visit history.
+ *     Capturing colors is trickier: Flaticon appears to keep a single "last used color" node
+ *     and update its `data-actual` / `style` attributes *in place* rather than appending new
+ *     `<li>`s (hence the id being singular — "last-icon-colors" — not "history"). So on top of
+ *     watching for new list entries, a MutationObserver also watches for *attribute* changes on
+ *     swatch buttons and on Pickr's palette drag-handle (`#icon-edit-color-picker`, a
+ *     https://github.com/Simonwep/pickr instance) across the whole colors panel, debounced so a
+ *     slider drag doesn't flood history with every intermediate frame. Typing a hex directly
+ *     into Pickr's text field is covered separately (`input`/`change`), since that only changes
+ *     a live DOM property, not an HTML attribute a MutationObserver can see.
  *
  *     All of this is wrapped in try/catch and re-scanned on DOM mutations, since it
  *     depends on Flaticon's live markup (last verified against flaticon.com in
@@ -219,12 +222,22 @@
 
   // Flaticon's editor markup, keyed so a future redesign only needs updates here.
   const FT_SEL = {
+    colorsPanel: ".detail__editor__colors",
     historyList: "#last-icon-colors",
     iconColorsList: "#svg-icon-colors",
     paletteSection: "#section-color-palette",
     historyLabel: ".detail__editor__colors p.history, .detail__editor__colors p.clear.history",
     pickrResult: "#icon-edit-color-picker .pcr-result",
+    // The three Pickr sliders (palette / hue / opacity) all reuse the ".pcr-picker" class for
+    // their drag handles. Only the palette one's inline `background` reflects the actual color
+    // being chosen — the hue handle only ever shows a fully-saturated hue, and the opacity one
+    // shows a black/transparent gradient, so both must stay excluded or we'd log the wrong hex.
+    pickrPaletteHandle: ".pcr-color-palette .pcr-picker",
   };
+
+  function findColorsPanel() {
+    return document.querySelector(FT_SEL.colorsPanel) || findHistoryList()?.parentElement || null;
+  }
 
   function findHistoryList() {
     return (
@@ -359,42 +372,100 @@
     }
   }
 
-  function watchHistoryList(ul) {
+  /**
+   * A hex color was just applied on the page — commit it to history (debounced, see below).
+   * Shared by every capture path so they all behave the same way.
+   */
+  function recordPick(hex) {
+    if (!hex) return;
+    window.FlaticonPaletteStorage
+      .addHistoryEntry({ hex, source: "flaticon-picker", ...getIconContext() })
+      .then(() => renderPanelHistory());
+  }
+
+  // Dragging Pickr's palette handle can fire dozens of mutations a second; only commit the
+  // color once the user has settled on one, instead of flooding history with every drag frame.
+  const debouncedRecordPick = debounce(recordPick, 450);
+
+  /**
+   * Pull a hex color out of a mutation, if this particular mutation represents a real color
+   * pick rather than incidental DOM churn (hover states, unrelated layout, etc).
+   */
+  function hexFromMutationTarget(target) {
+    if (!(target instanceof Element)) return null;
+    if (target.closest('[data-fpm-own="1"]')) return null; // one of our own nodes — ignore
+
+    // A swatch button in #svg-icon-colors or #last-icon-colors: read its *current* color,
+    // regardless of whether it was the "style" or "data-actual" attribute that just changed.
+    if (target.tagName === "BUTTON" && target.hasAttribute("data-actual")) {
+      return extractHex(target);
+    }
+
+    // Pickr's palette drag-handle reflects the live color as the user drags (not yet
+    // necessarily "applied" to the icon, but this is the only place a color choice made by
+    // dragging — rather than typing a hex or clicking a swatch — shows up at all).
+    if (target.matches && target.matches(FT_SEL.pickrPaletteHandle)) {
+      return normalizeHex(target.style.backgroundColor || target.style.background);
+    }
+
+    return null;
+  }
+
+  const observedPanels = new WeakSet();
+
+  /**
+   * One MutationObserver over Flaticon's whole colors panel, watching both for genuinely new
+   * list entries (in case Flaticon ever appends rather than mutates in place) *and* attribute
+   * changes on existing swatch buttons / the Pickr palette handle (what Flaticon's editor
+   * actually seems to do: it appears to keep a single "last used color" node and update its
+   * `data-actual` / `style` attributes in place, which a childList-only observer would miss).
+   */
+  function watchColorPanel(panelRoot) {
+    if (!panelRoot || observedPanels.has(panelRoot)) return;
+    observedPanels.add(panelRoot);
+
     const mo = new MutationObserver((mutations) => {
-      let sawForeignAddition = false;
+      let sawForeignListAddition = false;
+
       mutations.forEach((m) => {
+        if (m.type === "attributes") {
+          const hex = hexFromMutationTarget(m.target);
+          if (hex) debouncedRecordPick(hex);
+          return;
+        }
         m.addedNodes.forEach((node) => {
           if (!(node instanceof HTMLElement)) return;
           if (node.dataset && node.dataset.fpmOwn === "1") return; // ours — ignore
-          const hex = extractHex(node.querySelector("button"));
+          const btn = node.matches("button") ? node : node.querySelector("button");
+          const hex = extractHex(btn);
           if (!hex) return;
-          sawForeignAddition = true;
-          window.FlaticonPaletteStorage.addHistoryEntry({
-            hex,
-            source: "flaticon-picker",
-            ...getIconContext(),
-          }).then(() => renderPanelHistory());
+          sawForeignListAddition = true;
+          debouncedRecordPick(hex);
         });
       });
-      if (sawForeignAddition) {
-        // Flaticon may have re-rendered the list; make sure our own entries are still there.
+
+      if (sawForeignListAddition) {
+        // Flaticon may have re-rendered a list; make sure our own entries are still there.
         syncOwnSwatches();
       }
     });
-    mo.observe(ul, { childList: true });
+
+    mo.observe(panelRoot, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["style", "data-actual", "data-original"],
+    });
   }
 
+  /** Typing (or pasting) a hex code directly into Pickr's text field doesn't touch any HTML
+   *  attribute — `.value` is a live DOM property — so the attribute observer above can't see
+   *  it. Cover that path with a plain event listener instead. */
   function watchPickrResultInput() {
     const input = document.querySelector(FT_SEL.pickrResult);
     if (!input || input.dataset.fpmWatched) return;
     input.dataset.fpmWatched = "1";
-    const record = () => {
-      const hex = normalizeHex(input.value);
-      if (!hex) return;
-      window.FlaticonPaletteStorage
-        .addHistoryEntry({ hex, source: "flaticon-picker", ...getIconContext() })
-        .then(() => renderPanelHistory());
-    };
+    const record = () => recordPick(normalizeHex(input.value));
     input.addEventListener("change", record);
     input.addEventListener("blur", record);
   }
@@ -412,12 +483,12 @@
 
   function scanForEditor() {
     try {
+      watchColorPanel(findColorsPanel());
       watchPickrResultInput();
 
       const found = findHistoryList();
       if (found && found !== historyListEl) {
         historyListEl = found;
-        watchHistoryList(historyListEl);
         syncOwnSwatches();
       }
 
