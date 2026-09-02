@@ -208,6 +208,16 @@ const FlaticonPaletteStorage = (function () {
   };
 })();
 
+// A top-level `const` doesn't attach to `window` the way `var`/function declarations do —
+// it's only a global *binding*, accessible as a bare identifier to other classic scripts
+// sharing the same top-level scope (which is how popup.js/dashboard.js use it). content.js
+// also loaded that way, but it's cheap insurance to expose it as an ordinary window property
+// as well, so `FlaticonPaletteStorage` and `window.FlaticonPaletteStorage` are equivalent
+// everywhere this file is loaded.
+if (typeof window !== "undefined") {
+  window.FlaticonPaletteStorage = FlaticonPaletteStorage;
+}
+
 if (typeof module !== "undefined") {
   module.exports = FlaticonPaletteStorage;
 }
