@@ -14,8 +14,17 @@
    every `<path>` in an icon silently lost its actual shape (confirmed with a real render:
    getBoundingClientRect() on the path came back 0×0 with this rule applied, and its real size
    with it excluded). Our icons are fully self-contained (fill/viewBox/width/height all set as
-   attributes already), so excluding them from the reset loses nothing. */
-:where(#fpm-root, #fpm-root *):not(svg.fpm-icon, svg.fpm-icon *) {
+   attributes already), so excluding them from the reset loses nothing.
+
+   IMPORTANT: `:not(...)` is NOT specificity-free the way `:where(...)` is — unlike `:where()`,
+   `:not()` counts the specificity of its most specific argument. A previous version wrote
+   `:where(#fpm-root, #fpm-root *):not(svg.fpm-icon, svg.fpm-icon *)`, which put the whole
+   selector's specificity back above one class (from the `:not()` part alone), silently
+   reintroducing the exact bug this file's `:where()` was written to fix — confirmed with a real
+   render: `.fpm-primary-btn`'s computed background-color was back to the browser-default gray
+   instead of the teal actually authored. The `:not()` clause must ALSO be wrapped in its own
+   `:where()` so the entire selector — every part of it — stays at zero specificity. */
+:where(#fpm-root, #fpm-root *):where(:not(svg.fpm-icon, svg.fpm-icon *)) {
   all: revert;
   box-sizing: border-box;
   font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
@@ -24,7 +33,7 @@
 #fpm-root {
   position: fixed;
   z-index: 2147483000;
-  left: 20px;
+  right: 20px;
   bottom: 20px;
   --fpm-accent: #12a17d;
   --fpm-accent-dark: #0c8267;
@@ -63,16 +72,26 @@ svg.fpm-icon {
   position: relative;
   width: 52px;
   height: 52px;
+  padding: 0;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(155deg, var(--fpm-accent), var(--fpm-accent-dark));
+  background: #fff;
   color: #fff;
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(12, 130, 103, 0.4), 0 2px 6px rgba(15, 23, 31, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.fpm-toggle-icon-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
 }
 
 #fpm-toggle:hover {
@@ -98,7 +117,7 @@ svg.fpm-icon {
 
 #fpm-panel {
   position: absolute;
-  left: 0;
+  right: 0;
   bottom: 64px;
   width: 308px;
   max-height: 72vh;
@@ -113,7 +132,7 @@ svg.fpm-icon {
   opacity: 0;
   pointer-events: none;
   transform: translateY(10px) scale(0.97);
-  transform-origin: bottom left;
+  transform-origin: bottom right;
   transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
 }
 
@@ -367,7 +386,7 @@ svg.fpm-icon {
 #fpm-toast {
   position: fixed;
   z-index: 2147483001;
-  left: 20px;
+  right: 20px;
   bottom: 82px;
   background: var(--fpm-ink, #16212c);
   color: #fff;
@@ -469,8 +488,9 @@ li.fpm-add-swatch {
 /* Popover used by the "+" control in the embedded "My Palette" section — appended to
    document.body (so Flaticon's own layout/overflow can't clip it), so it needs its own mini
    reset + tokens rather than inheriting from #fpm-root. Icons excluded from the reset for the
-   same reason as the main #fpm-root rule above — see that comment. */
-:where(.fpm-add-popover, .fpm-add-popover *):not(svg.fpm-icon, svg.fpm-icon *) {
+   same reason as the main #fpm-root rule above — see that comment, including why the `:not()`
+   clause must be wrapped in its own `:where()` too (its own specificity isn't zero). */
+:where(.fpm-add-popover, .fpm-add-popover *):where(:not(svg.fpm-icon, svg.fpm-icon *)) {
   all: revert;
   box-sizing: border-box;
   font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;

@@ -125,7 +125,11 @@
   toggleBtn.id = "fpm-toggle";
   toggleBtn.type = "button";
   toggleBtn.title = "My Palette for Flaticon";
-  toggleBtn.innerHTML = icon("palette", { size: 22 }) + '<span class="fpm-toggle-badge" id="fpm-toggle-badge" hidden></span>';
+  // The custom floating-button artwork (not an inline icon like the rest of the UI) — declared
+  // web-accessible under "icons/*" in manifest.json so flaticon.com is allowed to load it.
+  const toggleIconUrl = chrome.runtime.getURL("icons/my-palette-floating-button-icon-2048.png");
+  toggleBtn.innerHTML = `<img src="${toggleIconUrl}" alt="" class="fpm-toggle-icon-img" />` +
+    '<span class="fpm-toggle-badge" id="fpm-toggle-badge" hidden></span>';
 
   const panel = document.createElement("div");
   panel.id = "fpm-panel";

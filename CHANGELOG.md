@@ -8,9 +8,29 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- **The floating button now sits at the bottom-left corner of Flaticon pages** instead of
-  bottom-right (`#fpm-root`/`#fpm-panel`/`#fpm-toast` and the panel's open animation all updated
-  to anchor and expand from the left).
+- **New custom artwork for the floating toggle button**, replacing the inline palette SVG icon —
+  loaded via `chrome.runtime.getURL("icons/my-palette-floating-button-icon-2048.png")` and
+  declared web-accessible under the existing `icons/*` entry. The button also picked up the
+  project's newly-redesigned icon set (`icons/icon16.png`/`icon48.png`/`icon128.png`, referenced
+  unchanged from `manifest.json`, so the new artwork took effect automatically once the files
+  were replaced) — plus new `icon32/256/512/1024.png` for future use, and an `icons/github/`
+  folder with GitHub-profile branding, excluded from the packaged zip (see Fixed, below) since
+  the extension itself never references it.
+
+### Fixed
+
+- **A change in this same 1.1.0 batch briefly reintroduced the exact cascade bug it was
+  supposed to be excluded from.** Fixing the icon-geometry bug (below) added
+  `:not(svg.fpm-icon, svg.fpm-icon *)` onto the reset's selector — but unlike `:where()`,
+  `:not()` is NOT specificity-free: it counts the specificity of its most specific argument,
+  which put the whole selector back above a single class and silently undid the earlier
+  `:where()` fix for everything else in the file (confirmed with a real render:
+  `.fpm-primary-btn`'s background-color was back to browser-default gray). Fixed by wrapping the
+  `:not()` clause in its own `:where(...)` too, so every part of the selector — not just the
+  outer one — stays at zero specificity.
+- **The packaged zip was carrying `icons/github/`'s GitHub-profile/README assets**, which the
+  extension itself never references, needlessly bloating the Chrome Web Store upload.
+  `scripts/package.sh`/`.ps1` now exclude that folder explicitly.
 
 ### Added
 

@@ -15,8 +15,10 @@ rm -f "$OUT_ZIP"
 
 echo "Packaging version ${VERSION} -> ${OUT_ZIP}"
 
+# icons/github/ holds GitHub-profile/README branding assets, not anything the extension itself
+# references — excluded so the Web Store upload isn't carrying unrelated weight.
 if command -v zip >/dev/null 2>&1; then
-  zip -r "$OUT_ZIP" manifest.json icons src -x "*.DS_Store" -x "Thumbs.db"
+  zip -r "$OUT_ZIP" manifest.json icons src -x "*.DS_Store" -x "Thumbs.db" -x "icons/github/*"
 else
   # Fall back to Python's zipfile module when the `zip` binary isn't available
   # (e.g. Git Bash on Windows).
@@ -33,6 +35,8 @@ with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED) as zf:
             zf.write(base, base)
             continue
         for dirpath, _dirs, files in os.walk(base):
+            if os.path.normpath(dirpath).endswith(os.path.normpath("icons/github")):
+                continue
             for f in files:
                 if f in (".DS_Store", "Thumbs.db"):
                     continue

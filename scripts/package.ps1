@@ -24,6 +24,11 @@ Copy-Item "manifest.json" $staging
 Copy-Item "icons" (Join-Path $staging "icons") -Recurse
 Copy-Item "src" (Join-Path $staging "src") -Recurse
 
+# icons/github/ holds GitHub-profile/README branding assets, not anything the extension itself
+# references — excluded so the Web Store upload isn't carrying unrelated weight.
+$stagedGithubIcons = Join-Path $staging "icons\github"
+if (Test-Path $stagedGithubIcons) { Remove-Item -Recurse -Force $stagedGithubIcons }
+
 Compress-Archive -Path (Join-Path $staging "*") -DestinationPath $outZip -Force
 Remove-Item -Recurse -Force $staging
 
