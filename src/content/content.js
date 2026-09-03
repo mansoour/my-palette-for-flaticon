@@ -19,11 +19,14 @@
  *     (`#icon-edit-color-picker .pcr-result`, a https://github.com/Simonwep/pickr instance) the
  *     same way a real user typing into it would (`applyHexViaPickr`) — that field is a genuine
  *     Flaticon-bound element, confirmed to work since it's exactly what Flaticon's own "Choose a
- *     new color" picker uses. Testing also showed this only takes effect *after* the picker popup
- *     has been opened at least once (Flaticon/Pickr appear to wire up their change handling on
- *     first open rather than at page load), so `applyHexViaPickr` opens the popup, sets the value,
- *     and closes it again — all synchronously in one call, before the browser gets a chance to
- *     paint, so the popup never actually becomes visible and the click still feels instant.
+ *     new color" picker uses. Testing also showed this only takes effect once the picker popup
+ *     has actually finished opening (comparing the editor's markup before/after a real pick shows
+ *     Pickr only sets `.pcr-app`'s inline position and `.color-picker-wrapper`'s `--pcr-color`
+ *     once its own opening sequence has run) — an open-set-close done in one synchronous call was
+ *     faster than that could complete and silently did nothing, so `applyHexViaPickr` now opens
+ *     the popup, waits briefly, sets the value, waits again, verifies the icon's active color
+ *     actually changed, and only then closes it back — a small real (not simulated-away) open is
+ *     the trade-off for it reliably working.
  *
  *     Ownership tracking for our injected nodes uses a `WeakSet` of the actual DOM elements
  *     (`ownNodes`), not a CSS class or data attribute, since Flaticon's editor runs some generic
@@ -57,6 +60,10 @@
 
   function icon(name, opts) {
     return window.FPMIcons ? window.FPMIcons.svg(name, opts) : "";
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   function debounce(fn, ms) {
@@ -333,14 +340,19 @@
   /**
    * Set Flaticon's own Pickr hex field and fire the same events a real user typing into it
    * would — this is the one confirmed-working path (it's what a genuine picker pick goes
-   * through). Pickr/Flaticon only seem to wire up their change handling once the picker popup
-   * has been opened at least once, so if it's currently closed this opens it, sets the value,
-   * lets the (synchronous) event dispatch run Flaticon's own handling, and closes it again —
-   * all in the same synchronous call, before the browser gets a chance to paint, so the popup
-   * never actually becomes visible. That keeps the click feeling instant instead of flashing
-   * Flaticon's own picker open.
+   * through). Pickr/Flaticon only seem to fully wire up their change handling once the picker
+   * popup has actually finished opening — comparing the editor's markup before and after a real
+   * pick showed `.pcr-app` only gets its inline position (`style="left:...; top:...;"`) and
+   * `.color-picker-wrapper` only gets its `--pcr-color` custom property once Pickr's own opening
+   * sequence has actually run. An earlier version opened and closed the popup in one synchronous
+   * call (to avoid a visible flash), which was faster than that sequence could complete, so the
+   * click silently did nothing — it only ever worked afterwards because a real, slower manual
+   * pick had already finished that one-time setup. So this now waits after opening (and again
+   * after dispatching the change) before closing, and actually checks whether the icon's active
+   * color updated before reporting success — a brief, real open/close is the trade-off for it
+   * reliably working versus a silent no-op that merely looked instant.
    */
-  function applyHexViaPickr(hex) {
+  async function applyHexViaPickr(hex) {
     const wrap = document.querySelector(FT_SEL.pickrWrap);
     const input = wrap && wrap.querySelector(".pcr-result");
     if (!input) return false;
@@ -348,15 +360,23 @@
     const app = wrap.querySelector(".pcr-app");
     const wasClosed = !!(toggle && app && app.classList.contains("hidden"));
     try {
-      if (wasClosed) toggle.click();
+      if (wasClosed) {
+        toggle.click();
+        await wait(80);
+      }
 
       const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
       nativeSetter.call(input, hex);
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
 
-      if (wasClosed) toggle.click(); // close it right back — see comment above
-      return true;
+      await wait(80);
+
+      const activeBtn = document.querySelector(FT_SEL.iconColorsList + " button.active");
+      const confirmed = !!(activeBtn && extractHex(activeBtn) === hex);
+
+      if (wasClosed) toggle.click(); // close it back
+      return confirmed;
     } catch (e) {
       if (wasClosed && app && !app.classList.contains("hidden")) toggle.click(); // don't leave it open on error
       return false;
@@ -418,13 +438,13 @@
 
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
-      const applied = applyHexViaPickr(hex);
+      const applied = await applyHexViaPickr(hex);
       await window.FlaticonPaletteStorage.addHistoryEntry({ hex, source: "applied-to-icon", ...getIconContext() });
-      if (!applied) {
-        const copied = await copyText(hex);
-        showToast(copied ? `Copied ${hex} — Flaticon's color picker wasn't found here` : hex);
-      } else {
+      if (applied) {
         showToast(`Applied ${hex}`);
+      } else {
+        const copied = await copyText(hex);
+        showToast(copied ? `Copied ${hex} — couldn't confirm it applied, paste it into Flaticon's picker` : hex);
       }
     });
 

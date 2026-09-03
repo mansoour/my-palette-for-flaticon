@@ -12,11 +12,15 @@ uses [Semantic Versioning](https://semver.org/).
   before Flaticon's own "History" label, instead of being mixed into Flaticon's
   `#last-icon-colors` list. Reads far more clearly as a distinct feature rather than looking like
   part of Flaticon's own (transient) history.
-- **Applying a saved color no longer flashes Flaticon's color-picker popup open.** `applyHexViaPickr`
-  still has to open the picker once (Pickr/Flaticon only wire up their change handling after
-  it's been opened) but now does the open → set value → close sequence entirely synchronously,
-  before the browser gets a chance to paint — so the click reads as instant with no visible extra
-  step.
+- **Applying a saved color now actually works on the very first click, without relying on
+  Flaticon's own picker having been used first.** The previous fix opened/set/closed Flaticon's
+  Pickr field in one synchronous call to avoid a visible popup flash — but that turned out to be
+  *faster* than Pickr's own opening sequence (positioning, wiring its change handling) could
+  complete, so it silently did nothing the first time; it only ever appeared to work afterwards
+  because a real, slower manual pick had already finished that one-time setup. `applyHexViaPickr`
+  now waits briefly after opening and again after dispatching the change, and verifies the icon's
+  active color actually updated before reporting success — a small, real (not simulated-away)
+  open/close of the popup, but the trade-off needed for it to reliably work every time.
 - **All emoji and text-glyph icons (🎨 ⭐ 🟢 ⚪ 🗑 ★ ☆ ↗ ×) replaced with real inline SVG icons**
   from [Bootstrap Icons](https://icons.getbootstrap.com/) (MIT licensed), embedded locally in a
   new `src/shared/icons.js` — no CDN, no runtime fetch, consistent with the "nothing leaves your

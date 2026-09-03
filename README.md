@@ -52,9 +52,12 @@ The extension has two layers, so it stays useful even as Flaticon's website evol
    that's bound per-button at creation time, so a button inserted from outside never gets it);
    instead it drives Flaticon's own Pickr hex field (`#icon-edit-color-picker .pcr-result`, a
    [Pickr](https://github.com/Simonwep/pickr) instance) with the same events a real user typing
-   into it would fire. Pickr only wires up its change handling after being opened once, so the
-   extension opens it, sets the value, and closes it again — all synchronously in one step, before
-   the browser can paint, so no popup is ever visibly shown and the click feels instant.
+   into it would fire. Pickr only finishes wiring up its change handling once its popup has
+   actually finished opening (an instant same-tick open→set→close turned out to be faster than
+   that and silently did nothing), so the extension opens it, waits briefly, sets the value, waits
+   again to verify the icon's color actually changed, and only then closes it back — a brief,
+   real open of Flaticon's own picker, small enough to barely register but the trade-off needed
+   for it to reliably work every time.
 
    Capturing colors watches `#last-icon-colors` separately: whenever Flaticon adds or updates an
    entry there — whether from clicking one of the icon's own colors or dialing one in with
