@@ -79,8 +79,8 @@ Store them under `store/screenshots/`:
 3. `03-dashboard-history.png` — the dashboard's "History" table with entries from different
    sources.
 4. `04-popup.png` — the toolbar popup.
-5. `05-inline-editor-integration.png` — the injected "⭐ My Palette (free)" box next to
-   Flaticon's locked "Custom palette" feature.
+5. `05-inline-editor-integration.png` — saved colors embedded directly into Flaticon's own
+   "History" swatch list on the icon editor, ringed to stand out from Flaticon's own entries.
 
 _(Capture these from a real Chrome session with the extension loaded — see README.md "Install
 from source" — before submitting.)_

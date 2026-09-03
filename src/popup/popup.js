@@ -66,7 +66,7 @@
 
       const removeX = document.createElement("span");
       removeX.className = "remove-x";
-      removeX.textContent = "×";
+      removeX.appendChild(FPMIcons.create("x-lg", { size: 9 }));
       removeX.title = "Remove from palette";
       removeX.addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -111,7 +111,7 @@
       const saveBtn = document.createElement("button");
       saveBtn.className = "save-btn";
       const alreadySaved = paletteHexes.has(h.hex);
-      saveBtn.textContent = alreadySaved ? "★" : "☆";
+      saveBtn.appendChild(FPMIcons.create(alreadySaved ? "star-fill" : "star", { size: 13 }));
       saveBtn.title = alreadySaved ? "Already in your palette" : "Save to palette";
       saveBtn.disabled = alreadySaved;
       saveBtn.addEventListener("click", async () => {

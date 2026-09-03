@@ -110,7 +110,7 @@
 
       const removeX = document.createElement("span");
       removeX.className = "remove-x";
-      removeX.textContent = "×";
+      removeX.appendChild(FPMIcons.create("x-lg", { size: 10 }));
       removeX.title = "Remove";
       removeX.addEventListener("click", async () => {
         await FlaticonPaletteStorage.removeColor(c.id);
@@ -209,7 +209,7 @@
 
       const saveBtn = document.createElement("button");
       const alreadySaved = paletteHexes.has(h.hex);
-      saveBtn.textContent = alreadySaved ? "★" : "☆";
+      saveBtn.appendChild(FPMIcons.create(alreadySaved ? "star-fill" : "star", { size: 14 }));
       saveBtn.title = alreadySaved ? "Already in your palette" : "Save to palette";
       saveBtn.disabled = alreadySaved;
       saveBtn.addEventListener("click", async () => {
@@ -220,7 +220,7 @@
       });
 
       const delBtn = document.createElement("button");
-      delBtn.textContent = "🗑";
+      delBtn.appendChild(FPMIcons.create("trash3", { size: 14 }));
       delBtn.title = "Delete entry";
       delBtn.addEventListener("click", async () => {
         await FlaticonPaletteStorage.removeHistoryEntry(h.id);

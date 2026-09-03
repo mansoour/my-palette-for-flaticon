@@ -6,8 +6,34 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **All emoji and text-glyph icons (🎨 ⭐ 🟢 ⚪ 🗑 ★ ☆ ↗ ×) replaced with real inline SVG icons**
+  from [Bootstrap Icons](https://icons.getbootstrap.com/) (MIT licensed), embedded locally in a
+  new `src/shared/icons.js` — no CDN, no runtime fetch, consistent with the "nothing leaves your
+  browser" privacy stance.
+- **Redesigned the in-page floating panel** (toggle button + popover) with a more modern look:
+  refined shadows, spacing, hover/focus states, a status pill with a real dot indicator instead
+  of ⚪/🟢, a small live-connection badge on the toggle button itself, and smooth open/close
+  transitions.
+
 ### Fixed
 
+- **The floating "My Palette" panel on Flaticon pages wouldn't close.** It was toggled via the
+  `hidden` attribute/property, at the mercy of how our aggressive `all: revert` reset interacted
+  with the host page. It's now driven by a dedicated CSS class or a real `display`/`opacity`
+  toggle, plus outside-click and Escape-key handling like any modern popover — clicking the ✕,
+  clicking elsewhere on the page, or pressing Escape now all close it reliably.
+- **Applying a saved color required picking a color with Flaticon's own tool first.** Testing
+  showed Flaticon/Pickr only wire up their change handling once the color-picker popup has been
+  opened at least once. `applyHexViaPickr` now opens it first (if it's closed) before setting the
+  hex value, matching what a real user does before typing or dragging a color — so it works on
+  the very first click now, not just after Flaticon's own picker has been used once already.
+- **A saved color could still occasionally get duplicated in the embedded History list on
+  click.** Hardened `syncOwnSwatches` with a small mutex so the several near-simultaneous callers
+  a single click can trigger (a storage-change event, a DOM-mutation callback, ...) can't
+  interleave, and dropped a redundant synthetic `keyup` (Enter) event dispatch that may have been
+  causing Flaticon to commit the same color twice.
 - **Saved palette colors didn't apply to the icon when clicked, only ones picked with
   Flaticon's own picker did.** Testing showed Flaticon must bind its recolor logic per-button
   at creation time (or otherwise scope it to elements it made itself) — a `<li><button>` we

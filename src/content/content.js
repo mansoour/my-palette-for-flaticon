@@ -20,12 +20,17 @@
  *     (`#icon-edit-color-picker .pcr-result`, a https://github.com/Simonwep/pickr instance) the
  *     same way a real user typing into it would (`applyHexViaPickr`) — that field is a genuine
  *     Flaticon-bound element, and it's confirmed to work since it's exactly what Flaticon's own
- *     "Choose a new color" picker uses.
+ *     "Choose a new color" picker uses. Testing also showed this only takes effect *after* the
+ *     picker popup has been opened at least once (Flaticon/Pickr appear to wire up their change
+ *     handling on first open rather than at page load), so `applyHexViaPickr` opens the popup
+ *     first if it isn't already, exactly like a real user would before typing/dragging a color.
  *
  *     Ownership tracking for our injected nodes uses a `WeakSet` of the actual DOM elements
  *     (`ownNodes`), not a CSS class or data attribute — those get stripped by whatever generic
  *     handling Flaticon runs over list items, which previously caused a stripped node to be
- *     mistaken for "not ours" and re-injected as a duplicate.
+ *     mistaken for "not ours" and re-injected as a duplicate. `syncOwnSwatches` also runs behind
+ *     a small mutex so overlapping calls (several can fire in quick succession off one click)
+ *     can't interleave and duplicate work.
  *
  *     Capturing colors is separate: Flaticon appears to keep a single "last used color" node
  *     and update its `data-actual` / `style` attributes *in place* rather than only appending
@@ -46,6 +51,10 @@
 
   function normalizeHex(v) {
     return window.FlaticonPaletteStorage ? window.FlaticonPaletteStorage.normalizeHex(v) : null;
+  }
+
+  function icon(name, opts) {
+    return window.FPMIcons ? window.FPMIcons.svg(name, opts) : "";
   }
 
   function debounce(fn, ms) {
@@ -77,21 +86,24 @@
   toggleBtn.id = "fpm-toggle";
   toggleBtn.type = "button";
   toggleBtn.title = "My Palette for Flaticon";
-  toggleBtn.textContent = "🎨";
+  toggleBtn.innerHTML = icon("palette", { size: 22 }) + '<span class="fpm-toggle-badge" id="fpm-toggle-badge" hidden></span>';
 
   const panel = document.createElement("div");
   panel.id = "fpm-panel";
-  panel.hidden = true;
+  panel.setAttribute("aria-hidden", "true");
   panel.innerHTML = `
     <div class="fpm-panel-head">
-      <span class="fpm-panel-title">🎨 My Palette</span>
-      <button type="button" class="fpm-icon-btn" id="fpm-close" title="Close">×</button>
+      <span class="fpm-panel-title">${icon("palette", { size: 16 })} My Palette</span>
+      <button type="button" class="fpm-icon-btn" id="fpm-close" title="Close">${icon("x-lg", { size: 14 })}</button>
     </div>
-    <div class="fpm-status" id="fpm-status">⚪ Scanning this page for Flaticon's color editor…</div>
+    <div class="fpm-status" id="fpm-status">
+      <span class="fpm-status-dot"></span>
+      <span id="fpm-status-text">Scanning this page for Flaticon's color editor…</span>
+    </div>
     <form class="fpm-add-row" id="fpm-add-form">
-      <input type="color" id="fpm-add-color" value="#12a17d" />
-      <input type="text" id="fpm-add-hex" placeholder="#12A17D" maxlength="7" />
-      <button type="submit" class="fpm-primary-btn">Add</button>
+      <input type="color" id="fpm-add-color" value="#12a17d" aria-label="Pick a color" />
+      <input type="text" id="fpm-add-hex" placeholder="#12A17D" maxlength="7" aria-label="Hex value" />
+      <button type="submit" class="fpm-primary-btn">${icon("plus-lg", { size: 14 })} Add</button>
     </form>
     <div class="fpm-section-label">My colors</div>
     <div class="fpm-grid" id="fpm-grid"></div>
@@ -100,7 +112,7 @@
     <div class="fpm-history" id="fpm-history"></div>
     <p class="fpm-empty" id="fpm-history-empty" hidden>Nothing picked yet.</p>
     <div class="fpm-panel-foot">
-      <button type="button" class="fpm-link-btn" id="fpm-open-dashboard">Open full dashboard ↗</button>
+      <button type="button" class="fpm-link-btn" id="fpm-open-dashboard">${icon("box-arrow-up-right", { size: 13 })} Open full dashboard</button>
     </div>
   `;
 
@@ -137,16 +149,42 @@
     }
   }
 
-  toggleBtn.addEventListener("click", () => {
-    panel.hidden = !panel.hidden;
-    if (!panel.hidden) {
+  // Open/close driven entirely by a CSS class (not the `hidden` attribute) so it isn't at the
+  // mercy of any interaction between the host page's stylesheet and ours; plus outside-click
+  // and Escape support, which a floating panel like this is expected to have.
+  function setPanelOpen(open) {
+    panel.classList.toggle("fpm-open", open);
+    panel.setAttribute("aria-hidden", open ? "false" : "true");
+    if (open) {
       renderPanelGrid();
       renderPanelHistory();
     }
+  }
+
+  toggleBtn.addEventListener("click", () => {
+    setPanelOpen(!panel.classList.contains("fpm-open"));
   });
-  panel.querySelector("#fpm-close").addEventListener("click", () => (panel.hidden = true));
+  panel.querySelector("#fpm-close").addEventListener("click", () => setPanelOpen(false));
   panel.querySelector("#fpm-open-dashboard").addEventListener("click", () => {
     chrome.runtime.sendMessage({ type: "open-dashboard" });
+  });
+
+  // Capture phase runs before the toggle/panel's own listeners, so this must explicitly ignore
+  // clicks that originated inside our own UI (root.contains) rather than unconditionally
+  // closing on every click — otherwise it fights the toggle button (closes, then the toggle's
+  // own handler immediately reopens it) and closes the panel out from under any click inside it
+  // before that click's own handler runs.
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (!panel.classList.contains("fpm-open")) return;
+      if (root.contains(e.target)) return;
+      setPanelOpen(false);
+    },
+    true
+  );
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && panel.classList.contains("fpm-open")) setPanelOpen(false);
   });
 
   const addColorInput = panel.querySelector("#fpm-add-color");
@@ -233,6 +271,9 @@
     iconColorsList: "#svg-icon-colors",
     paletteSection: "#section-color-palette",
     historyLabel: ".detail__editor__colors p.history, .detail__editor__colors p.clear.history",
+    pickrWrap: "#icon-edit-color-picker",
+    pickrToggle: "#icon-edit-color-picker .color-picker-wrapper",
+    pickrApp: "#icon-edit-color-picker .pcr-app",
     pickrResult: "#icon-edit-color-picker .pcr-result",
     // The three Pickr sliders (palette / hue / opacity) all reuse the ".pcr-picker" class for
     // their drag handles. Only the palette one's inline `background` reflects the actual color
@@ -291,16 +332,24 @@
    * Set Flaticon's own Pickr hex field and fire the same events a real user typing into it
    * would — this is the one confirmed-working path (it's what a genuine picker pick goes
    * through), unlike clicking a swatch we inserted ourselves, which Flaticon's per-element
-   * click binding never learns about since it didn't create that button.
+   * click binding never learns about since it didn't create that button. Opens the picker
+   * popup first if it's closed — testing showed the change only takes effect after Pickr/
+   * Flaticon have been opened at least once, presumably because that's when they wire up
+   * their change handling.
    */
   function applyHexViaPickr(hex) {
-    const input = document.querySelector(FT_SEL.pickrResult);
+    const wrap = document.querySelector(FT_SEL.pickrWrap);
+    const input = wrap && wrap.querySelector(".pcr-result");
     if (!input) return false;
     try {
+      const toggle = wrap.querySelector(".color-picker-wrapper");
+      const app = wrap.querySelector(".pcr-app");
+      if (toggle && app && app.classList.contains("hidden")) {
+        toggle.click();
+      }
       const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
       nativeSetter.call(input, hex);
       input.dispatchEvent(new Event("input", { bubbles: true }));
-      input.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Enter", code: "Enter", keyCode: 13, which: 13 }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
       return true;
     } catch (e) {
@@ -324,7 +373,7 @@
 
     const removeBtn = document.createElement("span");
     removeBtn.className = "fpm-remove-x";
-    removeBtn.textContent = "×";
+    removeBtn.innerHTML = icon("x-lg", { size: 9 });
     removeBtn.title = "Remove from My Palette";
     ownNodes.add(removeBtn);
     removeBtn.addEventListener("click", async (e) => {
@@ -361,6 +410,7 @@
 
     const label = document.createElement("label");
     label.className = "fpm-add-swatch-label";
+    label.innerHTML = icon("plus-lg", { size: 11, className: "fpm-add-swatch-plus" });
     ownNodes.add(label);
 
     const input = document.createElement("input");
@@ -368,11 +418,6 @@
     input.value = "#12a17d";
     input.className = "fpm-add-swatch-input";
     ownNodes.add(input);
-
-    const plus = document.createElement("span");
-    plus.className = "fpm-add-swatch-plus";
-    plus.textContent = "+";
-    ownNodes.add(plus);
 
     input.addEventListener("change", async () => {
       const hex = normalizeHex(input.value);
@@ -383,7 +428,7 @@
       renderPanelGrid();
     });
 
-    label.append(input, plus);
+    label.prepend(input);
     li.append(label);
     return li;
   }
@@ -394,8 +439,30 @@
 
   /** Add/remove our own <li> entries in the history list so it matches the saved palette.
    *  Tracked entirely via `ownSwatchLis`/`addControlLi` (JS references), not DOM queries —
-   *  see the ownNodes comment above for why. */
+   *  see the ownNodes comment above for why. Guarded by a small mutex: a single click can
+   *  trigger several near-simultaneous callers (storage change, DOM mutation, ...), and without
+   *  it two overlapping runs could each decide a color is "missing" before the other's insert
+   *  lands, producing a duplicate. */
+  let syncInFlight = false;
+  let syncQueued = false;
   async function syncOwnSwatches() {
+    if (syncInFlight) {
+      syncQueued = true;
+      return;
+    }
+    syncInFlight = true;
+    try {
+      await doSyncOwnSwatches();
+    } finally {
+      syncInFlight = false;
+      if (syncQueued) {
+        syncQueued = false;
+        syncOwnSwatches();
+      }
+    }
+  }
+
+  async function doSyncOwnSwatches() {
     if (!historyListEl || !document.contains(historyListEl)) return;
     const palette = await window.FlaticonPaletteStorage.getPalette();
     const paletteHexes = new Set(palette.map((c) => c.hex));
@@ -526,12 +593,14 @@
   let editorConnected = false;
   function setStatus(connected) {
     editorConnected = connected;
-    const el = panel.querySelector("#fpm-status");
-    if (!el) return;
-    el.textContent = connected
-      ? "🟢 Embedded in Flaticon's History — click any of your colors there to apply it"
-      : "⚪ Open an icon's color editor to see My Palette inside Flaticon's History section";
-    el.classList.toggle("fpm-status-on", connected);
+    const textEl = panel.querySelector("#fpm-status-text");
+    if (!textEl) return;
+    textEl.textContent = connected
+      ? "Embedded in Flaticon's History — click any of your colors there to apply it"
+      : "Open an icon's color editor to see My Palette inside Flaticon's History section";
+    panel.querySelector("#fpm-status").classList.toggle("fpm-status-on", connected);
+    const badge = toggleBtn.querySelector("#fpm-toggle-badge");
+    if (badge) badge.hidden = !connected;
   }
 
   function scanForEditor() {
@@ -566,7 +635,7 @@
   startObserving();
 
   chrome.storage.onChanged.addListener(() => {
-    if (!panel.hidden) {
+    if (panel.classList.contains("fpm-open")) {
       renderPanelGrid();
       renderPanelHistory();
     }

@@ -66,9 +66,9 @@ Because layer 2 depends on Flaticon's live HTML (selectors captured from flatico
 September 2026) and Flaticon can change that at any time without notice, it is written
 defensively (feature-detected, wrapped in `try/catch`, re-scanned on DOM changes, with a text-based
 fallback if the `#last-icon-colors` id ever changes) and is allowed to silently do nothing if it
-can't find what it's looking for — layer 1 always keeps working. If you notice the "🟢 Embedded in
-Flaticon's History" status never appears on an icon page, please open an issue with a screenshot
-of the editor's "History" section; selectors may just need an update (see
+can't find what it's looking for — layer 1 always keeps working. If you notice the panel's status
+never switches to "Embedded in Flaticon's History" on an icon page, please open an issue with a
+screenshot of the editor's "History" section; selectors may just need an update (see
 [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## Install

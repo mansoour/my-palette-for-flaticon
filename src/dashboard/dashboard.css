@@ -31,6 +31,18 @@ a {
   flex-wrap: wrap;
 }
 
+.banner-inner strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fpm-inline-icon {
+  display: inline-block;
+  vertical-align: -1px;
+  color: var(--fpm-accent-dark);
+}
+
 .app-header {
   max-width: 900px;
   margin: 0 auto;
@@ -342,10 +354,12 @@ a {
 }
 
 .history-row .row-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 14px;
   color: var(--fpm-text-muted);
 }
 
