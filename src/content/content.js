@@ -128,15 +128,14 @@
   // The custom floating-button artwork (not an inline icon like the rest of the UI) — declared
   // web-accessible under "icons/*" in manifest.json so flaticon.com is allowed to load it.
   const toggleIconUrl = chrome.runtime.getURL("icons/my-palette-floating-button-icon-2048.png");
-  toggleBtn.innerHTML = `<img src="${toggleIconUrl}" alt="" class="fpm-toggle-icon-img" />` +
-    '<span class="fpm-toggle-badge" id="fpm-toggle-badge" hidden></span>';
+  toggleBtn.innerHTML = `<img src="${toggleIconUrl}" alt="" class="fpm-toggle-icon-img" />`;
 
   const panel = document.createElement("div");
   panel.id = "fpm-panel";
   panel.setAttribute("aria-hidden", "true");
   panel.innerHTML = `
     <div class="fpm-panel-head">
-      <span class="fpm-panel-title">${icon("palette", { size: 16 })} My Palette</span>
+      <span class="fpm-panel-title"><img src="${toggleIconUrl}" alt="" class="fpm-panel-logo" /> My Palette</span>
       <button type="button" class="fpm-icon-btn" id="fpm-close" title="Close">${icon("x-lg", { size: 14 })}</button>
     </div>
     <div class="fpm-status" id="fpm-status">
@@ -541,20 +540,43 @@
     const pop = document.createElement("div");
     pop.className = "fpm-add-popover";
     ownNodes.add(pop);
-    // `.fpm-add-popover` is `position: fixed` (viewport-relative), same coordinate space as
-    // getBoundingClientRect() — no scroll-offset adjustment needed (and adding one would be
-    // wrong here, drifting further off-anchor the more the page is scrolled).
-    pop.style.top = `${rect.bottom + 8}px`;
-    pop.style.left = `${Math.max(8, rect.left - 90)}px`;
     pop.innerHTML = `
+      <div class="fpm-add-popover-head">
+        <span class="fpm-add-popover-title">Add a color</span>
+        <button type="button" class="fpm-add-popover-close" aria-label="Close">${icon("x-lg", { size: 12 })}</button>
+      </div>
       <div id="fpm-add-popover-cp"></div>
       <button type="button" class="fpm-add-popover-btn">${icon("plus-lg", { size: 12 })} Add to palette</button>
     `;
+    // Hidden until positioned below, to avoid a visible flash/jump at the default (0,0) spot —
+    // real placement needs the popover's actual rendered size, only known once it's in the DOM.
+    pop.style.visibility = "hidden";
     // Appended to <html>, not <body> — see the comment on syncMounted() for why: a transform/
     // filter/will-change on <body> (common on real sites) would otherwise silently reposition
     // this fixed-position popover relative to body's box instead of the viewport.
     document.documentElement.appendChild(pop);
     hardenIcons(pop);
+
+    // Prefer opening below the "+" swatch, but flip above it when there isn't room — this is
+    // what was causing the popover to render partly below the viewport, needing a scroll to see
+    // it at all. `getBoundingClientRect()` here (like `rect` above) is viewport-relative, the
+    // same coordinate space `position: fixed` uses, so no scroll-offset math is needed.
+    const margin = 8;
+    const popRect = pop.getBoundingClientRect();
+    // Named popTop/popLeft rather than top/left — properly function-scoped so it wouldn't
+    // actually collide with the browser's window.top, but a global-sounding name here is
+    // needless ambiguity to leave lying around for no benefit.
+    let popTop = rect.bottom + margin;
+    if (popTop + popRect.height > window.innerHeight - margin) {
+      popTop = Math.max(margin, rect.top - popRect.height - margin);
+    }
+    let popLeft = Math.max(margin, rect.left - 90);
+    if (popLeft + popRect.width > window.innerWidth - margin) {
+      popLeft = Math.max(margin, window.innerWidth - popRect.width - margin);
+    }
+    pop.style.top = `${popTop}px`;
+    pop.style.left = `${popLeft}px`;
+    pop.style.visibility = "visible";
 
     const cp = window.FPMColorPicker.create(pop.querySelector("#fpm-add-popover-cp"), { initial: "#12a17d" });
     pop.querySelector(".fpm-add-popover-btn").addEventListener("click", async () => {
@@ -566,28 +588,13 @@
       renderPanelGrid();
       closeAddPopover();
     });
+    // Deliberately no outside-click or scroll auto-close: the popover previously vanished the
+    // moment the page scrolled (which the mispositioning above made almost unavoidable), forcing
+    // a re-click every time. Closing is manual only now — this × button, or toggling the "+"
+    // swatch again (see buildAddControlLi below).
+    pop.querySelector(".fpm-add-popover-close").addEventListener("click", closeAddPopover);
 
     addPopoverEl = pop;
-    setTimeout(() => {
-      document.addEventListener(
-        "click",
-        function onOutsideClick(e) {
-          if (addPopoverEl && addPopoverEl.contains(e.target)) return;
-          closeAddPopover();
-          document.removeEventListener("click", onOutsideClick, true);
-          window.removeEventListener("scroll", onScrollClose, true);
-        },
-        true
-      );
-      // The popover is `position: fixed` (viewport-relative) while its anchor button scrolls
-      // with the page — without this it would visually drift off the "+" swatch on scroll.
-      window.addEventListener("scroll", onScrollClose, true);
-    }, 0);
-
-    function onScrollClose() {
-      closeAddPopover();
-      window.removeEventListener("scroll", onScrollClose, true);
-    }
   }
 
   function buildAddControlLi() {
@@ -805,8 +812,6 @@
       ? "Your colors now appear in their own section above Flaticon's History — click one to apply it"
       : "Open an icon's color editor to see My Palette as its own section";
     panel.querySelector("#fpm-status").classList.toggle("fpm-status-on", connected);
-    const badge = toggleBtn.querySelector("#fpm-toggle-badge");
-    if (badge) badge.hidden = !connected;
   }
 
   function scanForEditor() {

@@ -103,18 +103,6 @@ svg.fpm-icon {
   transform: translateY(0) scale(0.98);
 }
 
-.fpm-toggle-badge {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #35d68f;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px rgba(12, 130, 103, 0.3);
-}
-
 #fpm-panel {
   position: absolute;
   right: 0;
@@ -159,9 +147,13 @@ svg.fpm-icon {
   color: var(--fpm-ink);
 }
 
-.fpm-panel-title .fpm-icon {
-  color: var(--fpm-accent);
+.fpm-panel-logo {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
+
 
 .fpm-icon-btn {
   display: flex;
@@ -505,6 +497,38 @@ li.fpm-add-swatch {
   border-radius: 14px;
   box-shadow: 0 16px 40px rgba(15, 23, 31, 0.18), 0 2px 8px rgba(15, 23, 31, 0.08);
   padding: 14px;
+}
+
+.fpm-add-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.fpm-add-popover-title {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #16212c;
+}
+
+.fpm-add-popover-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6b7785;
+  padding: 0;
+}
+
+.fpm-add-popover-close:hover {
+  background: #f6f8f9;
+  color: #16212c;
 }
 
 .fpm-add-popover-btn {

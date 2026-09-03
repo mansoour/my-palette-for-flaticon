@@ -6,7 +6,27 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [1.1.1] — 2026-09-03
 
+### Changed
+
+- **The floating panel's header now shows the actual product icon** (the same artwork used for
+  the floating button) instead of an inline palette glyph.
+- **The embedded "My Palette" add-color popover no longer closes on an outside click or on
+  scroll.** It previously vanished the moment the page scrolled — which the positioning bug below
+  made almost unavoidable, forcing a re-click every time. Closing is manual only now: a new ×
+  button in the popover's header, or toggling the "+" swatch again.
+- **Removed the small green "connected" badge on the floating toggle button.** Once the button
+  switched to the custom artwork with `overflow: hidden` (to clip it into a circle), the badge's
+  absolutely-positioned corner dot got visibly cropped by that same clipping. Simplest fix: the
+  badge wasn't essential, so it's gone — the button now shows only the icon.
+
 ### Fixed
+
+- **The embedded "My Palette" add-color popover could render partly below the viewport**,
+  needing a scroll to see it at all — worse combined with the auto-close-on-scroll above, since
+  scrolling to reveal it also closed it, forcing another click every time. It now measures its
+  own rendered size after being inserted (hidden first, to avoid a visible jump) and flips to
+  open *above* the "+" swatch instead of below whenever there isn't enough room, the same way a
+  well-behaved dropdown/tooltip would.
 
 - **The floating button and its popover could render in the wrong place on real Flaticon pages**
   — anchored correctly in every isolated test page, yet consistently mispositioned on the live
