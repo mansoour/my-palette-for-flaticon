@@ -526,17 +526,44 @@
   // A small custom popover (built from FPMColorPicker — plain sliders, no native dialog at all)
   // sidesteps that whole class of problem.
   let addPopoverEl = null;
+  let addPopoverCleanup = null;
 
   function closeAddPopover() {
     if (addPopoverEl) {
       addPopoverEl.remove();
       addPopoverEl = null;
     }
+    if (addPopoverCleanup) {
+      addPopoverCleanup();
+      addPopoverCleanup = null;
+    }
+  }
+
+  // Prefer opening below the "+" swatch, but flip above it when there isn't room. Shared between
+  // the initial placement and re-placement on scroll/resize (below) so both stay in sync.
+  // `getBoundingClientRect()` is viewport-relative, the same coordinate space `position: fixed`
+  // uses, so no scroll-offset math is needed anywhere here.
+  function positionAddPopover(pop, anchorBtn) {
+    const rect = anchorBtn.getBoundingClientRect();
+    const margin = 8;
+    const popRect = pop.getBoundingClientRect();
+    // Named popTop/popLeft rather than top/left — properly function-scoped so it wouldn't
+    // actually collide with the browser's window.top, but a global-sounding name here is
+    // needless ambiguity to leave lying around for no benefit.
+    let popTop = rect.bottom + margin;
+    if (popTop + popRect.height > window.innerHeight - margin) {
+      popTop = Math.max(margin, rect.top - popRect.height - margin);
+    }
+    let popLeft = Math.max(margin, rect.left - 90);
+    if (popLeft + popRect.width > window.innerWidth - margin) {
+      popLeft = Math.max(margin, window.innerWidth - popRect.width - margin);
+    }
+    pop.style.top = `${popTop}px`;
+    pop.style.left = `${popLeft}px`;
   }
 
   function openAddPopover(anchorBtn) {
     closeAddPopover();
-    const rect = anchorBtn.getBoundingClientRect();
     const pop = document.createElement("div");
     pop.className = "fpm-add-popover";
     ownNodes.add(pop);
@@ -557,26 +584,32 @@
     document.documentElement.appendChild(pop);
     hardenIcons(pop);
 
-    // Prefer opening below the "+" swatch, but flip above it when there isn't room — this is
-    // what was causing the popover to render partly below the viewport, needing a scroll to see
-    // it at all. `getBoundingClientRect()` here (like `rect` above) is viewport-relative, the
-    // same coordinate space `position: fixed` uses, so no scroll-offset math is needed.
-    const margin = 8;
-    const popRect = pop.getBoundingClientRect();
-    // Named popTop/popLeft rather than top/left — properly function-scoped so it wouldn't
-    // actually collide with the browser's window.top, but a global-sounding name here is
-    // needless ambiguity to leave lying around for no benefit.
-    let popTop = rect.bottom + margin;
-    if (popTop + popRect.height > window.innerHeight - margin) {
-      popTop = Math.max(margin, rect.top - popRect.height - margin);
-    }
-    let popLeft = Math.max(margin, rect.left - 90);
-    if (popLeft + popRect.width > window.innerWidth - margin) {
-      popLeft = Math.max(margin, window.innerWidth - popRect.width - margin);
-    }
-    pop.style.top = `${popTop}px`;
-    pop.style.left = `${popLeft}px`;
+    positionAddPopover(pop, anchorBtn);
     pop.style.visibility = "visible";
+
+    // The popover deliberately never auto-closes on scroll anymore (see below), but since it's
+    // `position: fixed` while its anchor button scrolls normally with the page — or with
+    // Flaticon's own sidebar panel, which may scroll independently of the main page — it needs
+    // to keep tracking that button's position, or it visually detaches/clips instead of just
+    // sitting still. rAF-throttled so a scroll/resize storm doesn't hammer layout.
+    let rafId = null;
+    function onReposition() {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (addPopoverEl === pop) positionAddPopover(pop, anchorBtn);
+      });
+    }
+    // capture: true so this also catches scroll events from nested scroll containers (e.g. a
+    // scrollable sidebar), not just the main window — "scroll" doesn't bubble, but capture-phase
+    // listeners on an ancestor still see it on the way down to the actual scrolled element.
+    window.addEventListener("scroll", onReposition, true);
+    window.addEventListener("resize", onReposition, true);
+    addPopoverCleanup = () => {
+      window.removeEventListener("scroll", onReposition, true);
+      window.removeEventListener("resize", onReposition, true);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
 
     const cp = window.FPMColorPicker.create(pop.querySelector("#fpm-add-popover-cp"), { initial: "#12a17d" });
     pop.querySelector(".fpm-add-popover-btn").addEventListener("click", async () => {

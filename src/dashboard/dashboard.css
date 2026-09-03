@@ -13,6 +13,22 @@
   --bs-border-radius-sm: var(--fpm-radius-sm);
 }
 
+/* --bs-primary above does NOT reach .btn-primary — Bootstrap 5.3 compiles that component's own
+   --bs-btn-bg/--bs-btn-border-color/etc. straight from its Sass $primary variable, as literal
+   hex values, not as var(--bs-primary) references — see popup.css for the confirmed proof.
+   Redeclare the same component-scoped variables Bootstrap itself defines instead. */
+.btn-primary {
+  --bs-btn-bg: var(--fpm-accent);
+  --bs-btn-border-color: var(--fpm-accent);
+  --bs-btn-hover-bg: var(--fpm-accent-dark);
+  --bs-btn-hover-border-color: var(--fpm-accent-dark);
+  --bs-btn-active-bg: var(--fpm-accent-dark);
+  --bs-btn-active-border-color: var(--fpm-accent-dark);
+  --bs-btn-disabled-bg: var(--fpm-accent);
+  --bs-btn-disabled-border-color: var(--fpm-accent);
+  --bs-btn-focus-shadow-rgb: 18, 161, 125;
+}
+
 body {
   background: var(--fpm-bg-soft);
   color: var(--fpm-text);
