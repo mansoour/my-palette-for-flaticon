@@ -224,7 +224,19 @@
   });
   panel.querySelector("#fpm-close").addEventListener("click", () => setPanelOpen(false));
   panel.querySelector("#fpm-open-dashboard").addEventListener("click", () => {
-    chrome.runtime.sendMessage({ type: "open-dashboard" });
+    // Reloading the extension while this tab stays open invalidates its connection to the
+    // background script — sendMessage would throw "Extension context invalidated" instead of
+    // just failing. A real page reload is the only way to reconnect, so say that plainly rather
+    // than let an uncaught error do the talking.
+    if (!window.FlaticonPaletteStorage.isContextValid()) {
+      showToast("Please refresh this page to reconnect the extension");
+      return;
+    }
+    try {
+      chrome.runtime.sendMessage({ type: "open-dashboard" });
+    } catch (e) {
+      showToast("Please refresh this page to reconnect the extension");
+    }
   });
 
   // Capture phase runs before the toggle/panel's own listeners, so this must explicitly ignore

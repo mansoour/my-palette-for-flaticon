@@ -6,6 +6,19 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [1.1.0] — 2026-09-03
 
+### Fixed
+
+- **`Uncaught Error: Extension context invalidated` in storage.js.** Reloading the extension in
+  `chrome://extensions` while a matching Flaticon tab is still open — routine during development,
+  and occasionally happening in the wild on an extension auto-update — invalidates that tab's
+  connection to the background script; calling `chrome.storage` from it afterwards threw this as
+  an uncaught error instead of failing gracefully (the affected tab needs an actual page reload
+  to reconnect regardless, no code can fix that). Every `chrome.storage` read/write in
+  `storage.js` now goes through defensive wrappers that check `chrome.runtime.id` first and catch
+  the throw either way, falling back to an empty read / silent no-op write. Also guarded
+  `content.js`'s "Open full dashboard" button the same way, with a toast asking for a page
+  refresh instead of a silent failure.
+
 ### Changed
 
 - **New custom artwork for the floating toggle button**, replacing the inline palette SVG icon —

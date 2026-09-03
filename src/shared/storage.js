@@ -30,6 +30,58 @@ const FlaticonPaletteStorage = (function () {
     return "c_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
   }
 
+  function isContextValid() {
+    try {
+      return !!(typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.id);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Thin, defensive wrappers around chrome.storage.<area>.get/set. Reloading the extension in
+   * chrome://extensions while a matching tab is still open — routine during development, and
+   * occasionally happening in the wild on an extension auto-update — invalidates that tab's
+   * content-script context; calling chrome.storage from it after that throws "Extension context
+   * invalidated" as an uncaught error instead of failing gracefully. Every read here falls back
+   * to an empty result and every write becomes a silent no-op rather than an uncaught rejection —
+   * the affected tab needs an actual reload to reconnect regardless, so doing nothing until then
+   * is the right behavior.
+   */
+  function storageGet(area, keys) {
+    return new Promise((resolve) => {
+      if (!isContextValid()) {
+        resolve({});
+        return;
+      }
+      try {
+        chrome.storage[area].get(keys, (res) => {
+          if (chrome.runtime.lastError) {
+            resolve({});
+            return;
+          }
+          resolve(res || {});
+        });
+      } catch (e) {
+        resolve({});
+      }
+    });
+  }
+
+  function storageSet(area, obj) {
+    return new Promise((resolve) => {
+      if (!isContextValid()) {
+        resolve();
+        return;
+      }
+      try {
+        chrome.storage[area].set(obj, () => resolve());
+      } catch (e) {
+        resolve();
+      }
+    });
+  }
+
   /** Accepts #fff, fff, #ffffff, ffffff, rgb(...) / rgba(...) and returns "#rrggbb" or null. */
   function normalizeHex(input) {
     if (!input) return null;
@@ -50,15 +102,11 @@ const FlaticonPaletteStorage = (function () {
   }
 
   function getPalette() {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get([PALETTE_KEY], (res) => resolve(res[PALETTE_KEY] || []));
-    });
+    return storageGet("sync", [PALETTE_KEY]).then((res) => res[PALETTE_KEY] || []);
   }
 
   function savePalette(list) {
-    return new Promise((resolve) => {
-      chrome.storage.sync.set({ [PALETTE_KEY]: list.slice(0, MAX_PALETTE) }, resolve);
-    });
+    return storageSet("sync", { [PALETTE_KEY]: list.slice(0, MAX_PALETTE) });
   }
 
   async function addColor(hex, name, source) {
@@ -103,15 +151,11 @@ const FlaticonPaletteStorage = (function () {
   }
 
   function getHistory() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get([HISTORY_KEY], (res) => resolve(res[HISTORY_KEY] || []));
-    });
+    return storageGet("local", [HISTORY_KEY]).then((res) => res[HISTORY_KEY] || []);
   }
 
   function saveHistory(list) {
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [HISTORY_KEY]: list.slice(0, MAX_HISTORY) }, resolve);
-    });
+    return storageSet("local", { [HISTORY_KEY]: list.slice(0, MAX_HISTORY) });
   }
 
   async function addHistoryEntry({ hex, source, pageUrl, pageTitle, iconId }) {
@@ -198,21 +242,19 @@ const FlaticonPaletteStorage = (function () {
   }
 
   function getSettings() {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get([SETTINGS_KEY], (res) => resolve({ ...DEFAULT_SETTINGS, ...(res[SETTINGS_KEY] || {}) }));
-    });
+    return storageGet("sync", [SETTINGS_KEY]).then((res) => ({ ...DEFAULT_SETTINGS, ...(res[SETTINGS_KEY] || {}) }));
   }
 
   async function updateSettings(patch) {
     const current = await getSettings();
     const next = { ...current, ...patch };
-    return new Promise((resolve) => {
-      chrome.storage.sync.set({ [SETTINGS_KEY]: next }, () => resolve(next));
-    });
+    await storageSet("sync", { [SETTINGS_KEY]: next });
+    return next;
   }
 
   return {
     normalizeHex,
+    isContextValid,
     getPalette,
     addColor,
     updateColor,
