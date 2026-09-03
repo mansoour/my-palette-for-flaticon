@@ -25,10 +25,10 @@ there's a strong reason not to (and discuss it in an issue first).
 
 ## Reporting a broken Flaticon integration
 
-The "layer 2" integration (auto-detecting Flaticon's own color history, injecting a palette box
-next to their "Custom palette" feature) depends on Flaticon's live page markup, which can change
-without notice. If the floating panel's status line stops showing "🟢 Connected to Flaticon's
-color editor" on an icon page where you'd expect it to:
+The "layer 2" integration (auto-detecting Flaticon's own color history, injecting a "My Palette"
+section next to their "History") depends on Flaticon's live page markup, which can change without
+notice. If the floating panel's status dot stops turning green with "Your colors now appear in
+their own section above Flaticon's History" on an icon page where you'd expect it to:
 
 1. Open an issue with the icon page URL you tested on.
 2. If you can, right-click the "History" section in Flaticon's editor → **Inspect** → copy the

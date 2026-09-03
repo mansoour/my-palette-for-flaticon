@@ -4,6 +4,37 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] — 2026-09-03
+
+### Fixed
+
+- **The embedded "My Palette" add-color popover could go half off-screen when the page was
+  scrolled after opening it.** The previous fix flipped the popover above its anchor when there
+  wasn't room below, but that positioning only ran once, at open time — the earlier scroll-close
+  listener had been removed (per explicit request, so scrolling wouldn't dismiss it), but nothing
+  was put in its place to keep the popover glued to its anchor as the page (or a scrollable
+  sidebar containing the anchor) scrolled. Extracted the positioning logic into
+  `positionAddPopover()` and added `scroll`/`resize` listeners (capture phase, so scrolling inside
+  a nested container is caught too) that re-run it, throttled to one recalculation per animation
+  frame.
+- **"Add to palette" buttons rendered Bootstrap's default blue instead of the extension's teal**,
+  in the popup and the dashboard. Root cause: Bootstrap 5.3 compiles `.btn-primary`'s own
+  `--bs-btn-bg`/`--bs-btn-border-color`/etc. from its Sass `$primary` variable as literal hex
+  values baked into `bootstrap.min.css` (confirmed by grepping the shipped file:
+  `.btn-primary{--bs-btn-bg:#0d6efd;...}`), not as `var(--bs-primary)` references — so overriding
+  `--bs-primary` on `:root` (the fix already in place for links and other Bootstrap primitives)
+  never reaches `.btn-primary` at all. Fixed by redeclaring the same component-scoped
+  `--bs-btn-*` variables directly on `.btn-primary` in both `popup.css` and `dashboard.css`.
+  Verified with a real render: button background went from `rgb(13, 110, 253)` to
+  `rgb(18, 161, 125)`.
+
+### Changed
+
+- Updated documentation (README, this changelog) for the current feature set: the three-layer
+  "How it works" breakdown now includes the toolbar popup/dashboard/Settings as its own layer,
+  the project structure listing reflects the full icon set, and a Screenshots section with the
+  real store assets was added.
+
 ## [1.1.1] — 2026-09-03
 
 ### Changed

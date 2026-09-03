@@ -72,21 +72,13 @@ English
 
 ## Screenshots (1280×800 or 640×400, up to 5)
 
-Store them under `store/screenshots/`:
+Captured and in place under `store/screenshots/` (also shown in [README.md](../README.md)):
 
-1. `01-floating-panel-on-icon-page.png` — the floating palette panel open on the example icon
-   page (https://www.flaticon.com/free-icon/degree_4011018?related_id=4011018) showing the
-   palette and history.
-2. `02-dashboard-palette.png` — the full dashboard, "My palette" section with several saved
-   colors.
-3. `03-dashboard-history.png` — the dashboard's "History" table with entries from different
-   sources.
-4. `04-popup.png` — the toolbar popup.
-5. `05-inline-editor-integration.png` — the "My Palette" section this extension inserts on the
-   icon editor, right above Flaticon's own "History".
-
-_(Capture these from a real Chrome session with the extension loaded — see README.md "Install
-from source" — before submitting.)_
+1. `01-build-your-palette.png` — building a palette in the full dashboard.
+2. `02-color-history.png` — the dashboard's automatic color history.
+3. `03-floating-palette.png` — the floating palette panel open on a real Flaticon page.
+4. `04-one-click-apply.png` — one-click apply from the "My Palette" section on the icon editor.
+5. `05-toolbar-popup.png` — the toolbar popup.
 
 ## Promo tile images (optional but recommended)
 
@@ -119,10 +111,16 @@ Use `store/icon-512.png` (generated in this repo) as the base mark for these.
 
 - [x] GitHub repo, support email, website, privacy, and contact links are all set to their real
       values (see `src/shared/config.js`, `manifest.json`, `PRIVACY_POLICY.md`).
-- [ ] Bump `version` in `manifest.json` if this isn't the first submission.
-- [ ] Run `scripts/package.sh` (or `.ps1`) to build the upload zip.
-- [ ] Take real screenshots per the list above and drop them in `store/screenshots/`.
-- [ ] Host `PRIVACY_POLICY.md` somewhere with a stable public URL (GitHub renders it fine) and
+- [x] Bump `version` in `manifest.json` if this isn't the first submission.
+- [x] Run `scripts/package.sh` (or `.ps1`) to build the upload zip.
+- [x] Take real screenshots per the list above and drop them in `store/screenshots/`.
+- [x] Host `PRIVACY_POLICY.md` somewhere with a stable public URL (GitHub renders it fine) and
       paste that URL into the listing's Privacy Policy field.
-- [ ] Fill in the Developer Dashboard's Privacy Practices tab using the justifications above.
-- [ ] Submit for review.
+- [x] Fill in the Developer Dashboard's Privacy Practices tab using the justifications above.
+- [x] Submit for review.
+
+> **Status: submitted, awaiting Google's review.** Not yet published on the Chrome Web Store.
+> Once it's live, the listing URL gets linked from README.md's "Install" section and from
+> `src/shared/config.js`'s `homepageUrl`-adjacent links. Any change requiring a re-submission
+> (a new zip) should bump `version` in `manifest.json` again and add a new `CHANGELOG.md` entry
+> first.

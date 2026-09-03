@@ -23,6 +23,17 @@ for free, entirely client-side, using your own browser storage.
 Example icon page this was built against:
 https://www.flaticon.com/free-icon/degree_4011018?related_id=4011018
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Build your palette](store/screenshots/01-build-your-palette.png) | ![Color history](store/screenshots/02-color-history.png) |
+| Build your palette in the dashboard | Automatic color history |
+| ![Floating palette on Flaticon](store/screenshots/03-floating-palette.png) | ![One-click apply](store/screenshots/04-one-click-apply.png) |
+| The floating panel on any Flaticon page | One-click apply inside the icon editor |
+| ![Toolbar popup](store/screenshots/05-toolbar-popup.png) | |
+| The toolbar popup | |
+
 ## Features
 
 - **Unlimited saved colors** — add any hex color to your personal palette from the popup, the
@@ -51,17 +62,23 @@ https://www.flaticon.com/free-icon/degree_4011018?related_id=4011018
 
 ## How it works
 
-The extension has two layers, so it stays useful even as Flaticon's website evolves:
+The extension has three layers, so it stays useful even as Flaticon's website evolves:
 
 1. **Guaranteed layer — the floating panel.** A small palette button is injected on every
-   `flaticon.com` page. It works completely independently of Flaticon's own markup: add colors,
-   browse your palette, copy any color to the clipboard, and see your recent history.
+   `flaticon.com` page, mounted on `<html>` rather than `<body>` so it can't be knocked out of
+   position by a `transform`/`filter` a real site's `<body>` happens to use (see
+   [CHANGELOG.md](CHANGELOG.md) for exactly how that bit us once). It works completely
+   independently of Flaticon's own markup: add colors with the built-in
+   hue/saturation/lightness picker, browse your palette, copy any color to the clipboard, and see
+   your recent history — all without leaving the page.
+
 2. **Embedded layer — a "My Palette" section on the icon editor, right before "History".**
    Flaticon's icon editor renders the icon's own colors, and its "History" of applied colors, as
    plain lists of `<li class="color"><button data-actual="#hex" style="background:#hex"></button>
    </li>` elements (`#svg-icon-colors` and `#last-icon-colors`). This extension inserts its own
    section using the same swatch markup — for consistent native sizing — but keeps it entirely
    separate from Flaticon's own lists, labeled "My Palette", right above Flaticon's "History".
+
    Clicking one of your colors there doesn't rely on Flaticon's click handling (testing showed
    that's bound per-button at creation time, so a button inserted from outside never gets it);
    instead it drives Flaticon's own Pickr hex field (`#icon-edit-color-picker .pcr-result`, a
@@ -79,13 +96,21 @@ The extension has two layers, so it stays useful even as Flaticon's website evol
    (tagged `Flaticon picker`), so it survives page reloads instead of vanishing with Flaticon's
    own in-memory, per-visit history.
 
+3. **Management layer — the toolbar popup, the full dashboard, and Settings.** The toolbar popup
+   gives quick add/copy/history access from anywhere, not just flaticon.com. The full dashboard
+   (opens from the popup or `chrome://extensions` → Details → Extension options) manages your
+   whole palette and history, handles JSON import/export, and has a Settings tab to turn the
+   floating panel (layer 1) on or off — independently of the embedded section (layer 2), which
+   stays on regardless.
+
 Because layer 2 depends on Flaticon's live HTML (selectors captured from flaticon.com in
 September 2026) and Flaticon can change that at any time without notice, it is written
-defensively (feature-detected, wrapped in `try/catch`, re-scanned on DOM changes, with a text-based
-fallback if Flaticon's ids ever change) and is allowed to silently do nothing if it can't find
-what it's looking for — layer 1 always keeps working. If you notice the panel's status never
-switches to "connected" on an icon page, please open an issue with a screenshot of the editor's
-"History" section; selectors may just need an update (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+defensively (feature-detected, wrapped in `try/catch`, re-scanned on DOM changes, with a
+text-based fallback if Flaticon's ids ever change) and is allowed to silently do nothing if it
+can't find what it's looking for — layers 1 and 3 always keep working regardless. If you notice
+the panel's status never switches to "connected" on an icon page, please open an issue with a
+screenshot of the editor's "History" section; selectors may just need an update (see
+[CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## Install
 
@@ -99,8 +124,10 @@ switches to "connected" on an icon page, please open an issue with a screenshot 
 
 ### From the Chrome Web Store
 
-Once published, the store listing will be linked here. See
-[store/STORE_LISTING.md](store/STORE_LISTING.md) for the listing copy and submission checklist.
+📤 **Submitted and awaiting review.** This extension has been submitted to the Chrome Web Store
+and is currently in Google's review queue — it is not published yet. The store listing will be
+linked here as soon as it goes live. See [store/STORE_LISTING.md](store/STORE_LISTING.md) for the
+listing copy and submission checklist in the meantime.
 
 ## Project structure
 
@@ -119,7 +146,7 @@ src/
   shared/icons.js             Inline Bootstrap Icons used across the UI
   shared/theme.css            Shared design tokens
   shared/vendor/bootstrap.min.css   Self-hosted Bootstrap 5 (MIT), used by popup + dashboard
-icons/                        Extension icons (16/48/128 px)
+icons/                        Extension icons (16 up to 1024 px) + the floating-button/logo art
 store/                        Chrome Web Store listing copy, promo assets, screenshots
 scripts/                      Packaging helpers for the Web Store zip
 ```
