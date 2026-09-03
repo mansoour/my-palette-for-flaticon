@@ -1,5 +1,11 @@
-#fpm-root,
-#fpm-root * {
+/* :where() wraps the selector list with zero added specificity — critical here. A plain
+   `#fpm-root, #fpm-root *` selector carries the specificity of one ID (the universal selector
+   contributes nothing), which beats every ordinary single-class rule below it (e.g.
+   `.fpm-panel-title`, `.fpm-cp-slider`) regardless of source order, silently reverting almost
+   all of this file's actual styling back to browser defaults. Only rules that happened to also
+   use an ID (`#fpm-panel`, `#fpm-toggle`) were winning their cascade tie. `:where()` keeps the
+   exact same reset behavior with none of that fight. */
+:where(#fpm-root, #fpm-root *) {
   all: revert;
   box-sizing: border-box;
   font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
@@ -453,8 +459,7 @@ li.fpm-add-swatch {
 /* Popover used by the "+" control in the embedded "My Palette" section — appended to
    document.body (so Flaticon's own layout/overflow can't clip it), so it needs its own mini
    reset + tokens rather than inheriting from #fpm-root. */
-.fpm-add-popover,
-.fpm-add-popover * {
+:where(.fpm-add-popover, .fpm-add-popover *) {
   all: revert;
   box-sizing: border-box;
   font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;

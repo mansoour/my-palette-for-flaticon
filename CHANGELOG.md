@@ -38,6 +38,18 @@ uses [Semantic Versioning](https://semver.org/).
   `all: revert` reset and any conflicting rule from Flaticon's own page styles) rather than
   relying on the SVG's `fill="currentColor"` presentation attribute, which an ordinary CSS rule —
   including our own reset — always wins over.
+- **The floating panel and its popovers were rendering almost completely unstyled** (default
+  browser buttons/sliders, no layout, no colors) — the actual root cause of the broken icon above
+  and of "the styling isn't good" more generally. `#fpm-root, #fpm-root * { all: revert; ... }`
+  carries the specificity of one ID (the universal selector contributes nothing), which beats
+  every plain single-class rule elsewhere in the file (`.fpm-panel-title`, `.fpm-cp-slider`,
+  `.fpm-primary-btn`, ...) regardless of source order — only rules that happened to also use an
+  ID (`#fpm-panel`, `#fpm-toggle`) were winning their cascade tie against the reset. Verified with
+  a real headless-Chrome render before and after: before the fix, a slider's computed
+  `-webkit-appearance` was `auto` and a button's computed `background-color` was the browser
+  default gray, despite explicit rules saying otherwise. Fixed by wrapping the reset's selector
+  in `:where(...)`, which keeps the identical reset behavior at zero added specificity, so it can
+  never fight the file's own styling again.
 
 ### Changed
 
