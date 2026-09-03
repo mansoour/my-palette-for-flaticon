@@ -354,15 +354,26 @@
    swatch sizing straight from the site's stylesheet; we only add a marker ring, a remove
    control, and the "+" add-to-palette control on top. */
 
-li.fpm-own-swatch {
+.fpm-own-section {
+  margin: 12px 0;
+  padding: 12px 14px 14px;
+  border-radius: 12px;
+  background: #e6f7f2;
+  border: 1px solid #bfe9db;
+}
+
+.fpm-own-label {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  color: #0c8267 !important;
+}
+
+.fpm-own-section li.color {
   position: relative;
 }
 
-li.fpm-own-swatch button {
-  box-shadow: 0 0 0 2px #12a17d, 0 0 0 3px #fff inset;
-}
-
-li.fpm-own-swatch .fpm-remove-x {
+.fpm-own-section li.color .fpm-remove-x {
   position: absolute;
   top: -6px;
   right: -6px;
@@ -380,11 +391,11 @@ li.fpm-own-swatch .fpm-remove-x {
   box-shadow: 0 2px 6px rgba(15, 23, 31, 0.15);
 }
 
-li.fpm-own-swatch .fpm-remove-x:hover {
+.fpm-own-section li.color .fpm-remove-x:hover {
   color: #e5484d;
 }
 
-li.fpm-own-swatch:hover .fpm-remove-x {
+.fpm-own-section li.color:hover .fpm-remove-x {
   display: flex;
 }
 

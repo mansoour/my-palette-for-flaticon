@@ -45,11 +45,12 @@ backend, no analytics, and no tracking. Nothing you save is ever sent anywhere. 
 policy: https://github.com/your-github-username/flaticon-custom-color-palette-managment/blob/main/PRIVACY_POLICY.md
 
 HOW TO USE
-1. Click the extension icon to open the popup, or the 🎨 button that appears on flaticon.com, and
-   add a few colors to your palette.
-2. Open any Flaticon icon page (e.g. flaticon.com/free-icon/degree_4011018) and click the same 🎨
-   button — your palette and recent history are right there.
-3. Click a saved color to copy it (and, when Flaticon's editor is open, try applying it directly).
+1. Click the extension icon to open the popup, or the palette button that appears on
+   flaticon.com, and add a few colors to your palette.
+2. Open any Flaticon icon page (e.g. flaticon.com/free-icon/degree_4011018) and click the same
+   palette button — your palette and recent history are right there.
+3. On the icon editor, your saved colors also show up in their own "My Palette" section, right
+   above Flaticon's "History" — click one to apply it to the icon.
 4. Open the full dashboard any time from the popup for palette management, history, and backups.
 
 This is an independent, unofficial project and is not affiliated with, endorsed by, or connected
@@ -71,16 +72,16 @@ English
 
 Store them under `store/screenshots/`:
 
-1. `01-floating-panel-on-icon-page.png` — the 🎨 panel open on the example icon page
-   (https://www.flaticon.com/free-icon/degree_4011018?related_id=4011018) showing the palette
-   and history.
+1. `01-floating-panel-on-icon-page.png` — the floating palette panel open on the example icon
+   page (https://www.flaticon.com/free-icon/degree_4011018?related_id=4011018) showing the
+   palette and history.
 2. `02-dashboard-palette.png` — the full dashboard, "My palette" section with several saved
    colors.
 3. `03-dashboard-history.png` — the dashboard's "History" table with entries from different
    sources.
 4. `04-popup.png` — the toolbar popup.
-5. `05-inline-editor-integration.png` — saved colors embedded directly into Flaticon's own
-   "History" swatch list on the icon editor, ringed to stand out from Flaticon's own entries.
+5. `05-inline-editor-integration.png` — the "My Palette" section this extension inserts on the
+   icon editor, right above Flaticon's own "History".
 
 _(Capture these from a real Chrome session with the extension loaded — see README.md "Install
 from source" — before submitting.)_

@@ -7,32 +7,34 @@
  *     Lets the user browse/add/copy their saved colors and recent history without
  *     depending on any Flaticon-specific DOM structure.
  *
- *  2. EMBEDDED (best effort) — Flaticon's own icon editor renders its swatch lists
- *     (`#svg-icon-colors` "Select a color from the icon", `#last-icon-colors` "History") as
- *     `<li class="color"><button data-original data-actual style="background:#hex"></button>
- *     </li>`. Saved palette colors are inserted into `#last-icon-colors` with the same markup,
- *     so they sit right there visually — but clicking one does NOT reach Flaticon's own recolor
- *     logic: testing showed Flaticon must bind that per-button at creation time (or similarly
- *     scope it to elements it made itself), since buttons inserted from outside stay inert, even
- *     though something in Flaticon's code *does* still touch them generically (observed
- *     stripping our tracking class/attribute off a clicked entry — see `ownNodes` below). So
- *     applying a saved color instead drives Flaticon's own Pickr hex field
+ *  2. EMBEDDED (best effort) — a "My Palette" section is inserted into Flaticon's icon editor,
+ *     right before its own "History" label, kept deliberately separate from Flaticon's own lists
+ *     (an earlier version mixed saved colors into Flaticon's `#last-icon-colors`, which read as
+ *     confusing since they'd sit alongside Flaticon's own transient entries). Its swatches reuse
+ *     Flaticon's `.color`/`button` markup purely so they inherit the site's own sizing for a
+ *     native look, but clicking one does NOT rely on Flaticon's own click handling — testing
+ *     showed Flaticon must bind its recolor logic per-button at creation time (or similarly scope
+ *     it to elements it made itself), since buttons inserted from outside stay inert. Instead,
+ *     applying a saved color drives Flaticon's own Pickr hex field
  *     (`#icon-edit-color-picker .pcr-result`, a https://github.com/Simonwep/pickr instance) the
  *     same way a real user typing into it would (`applyHexViaPickr`) — that field is a genuine
- *     Flaticon-bound element, and it's confirmed to work since it's exactly what Flaticon's own
- *     "Choose a new color" picker uses. Testing also showed this only takes effect *after* the
- *     picker popup has been opened at least once (Flaticon/Pickr appear to wire up their change
- *     handling on first open rather than at page load), so `applyHexViaPickr` opens the popup
- *     first if it isn't already, exactly like a real user would before typing/dragging a color.
+ *     Flaticon-bound element, confirmed to work since it's exactly what Flaticon's own "Choose a
+ *     new color" picker uses. Testing also showed this only takes effect *after* the picker popup
+ *     has been opened at least once (Flaticon/Pickr appear to wire up their change handling on
+ *     first open rather than at page load), so `applyHexViaPickr` opens the popup, sets the value,
+ *     and closes it again — all synchronously in one call, before the browser gets a chance to
+ *     paint, so the popup never actually becomes visible and the click still feels instant.
  *
  *     Ownership tracking for our injected nodes uses a `WeakSet` of the actual DOM elements
- *     (`ownNodes`), not a CSS class or data attribute — those get stripped by whatever generic
- *     handling Flaticon runs over list items, which previously caused a stripped node to be
- *     mistaken for "not ours" and re-injected as a duplicate. `syncOwnSwatches` also runs behind
- *     a small mutex so overlapping calls (several can fire in quick succession off one click)
- *     can't interleave and duplicate work.
+ *     (`ownNodes`), not a CSS class or data attribute, since Flaticon's editor runs some generic
+ *     handling over list items in its OWN lists that was observed stripping a tracking
+ *     class/attribute off a clicked entry when this lived inside `#last-icon-colors`; a WeakSet
+ *     survives that regardless. `syncOwnSwatches` also runs behind a small mutex so overlapping
+ *     calls (several can fire in quick succession off one click) can't interleave and duplicate
+ *     work.
  *
- *     Capturing colors is separate: Flaticon appears to keep a single "last used color" node
+ *     Capturing colors is separate, and still watches Flaticon's own `#last-icon-colors` (not
+ *     our section): Flaticon appears to keep a single "last used color" node
  *     and update its `data-actual` / `style` attributes *in place* rather than only appending
  *     new `<li>`s (hence the id being singular — "last-icon-colors" — not "history"). So on top
  *     of watching for new list entries, a MutationObserver also watches for *attribute* changes
@@ -331,36 +333,64 @@
   /**
    * Set Flaticon's own Pickr hex field and fire the same events a real user typing into it
    * would — this is the one confirmed-working path (it's what a genuine picker pick goes
-   * through), unlike clicking a swatch we inserted ourselves, which Flaticon's per-element
-   * click binding never learns about since it didn't create that button. Opens the picker
-   * popup first if it's closed — testing showed the change only takes effect after Pickr/
-   * Flaticon have been opened at least once, presumably because that's when they wire up
-   * their change handling.
+   * through). Pickr/Flaticon only seem to wire up their change handling once the picker popup
+   * has been opened at least once, so if it's currently closed this opens it, sets the value,
+   * lets the (synchronous) event dispatch run Flaticon's own handling, and closes it again —
+   * all in the same synchronous call, before the browser gets a chance to paint, so the popup
+   * never actually becomes visible. That keeps the click feeling instant instead of flashing
+   * Flaticon's own picker open.
    */
   function applyHexViaPickr(hex) {
     const wrap = document.querySelector(FT_SEL.pickrWrap);
     const input = wrap && wrap.querySelector(".pcr-result");
     if (!input) return false;
+    const toggle = wrap.querySelector(".color-picker-wrapper");
+    const app = wrap.querySelector(".pcr-app");
+    const wasClosed = !!(toggle && app && app.classList.contains("hidden"));
     try {
-      const toggle = wrap.querySelector(".color-picker-wrapper");
-      const app = wrap.querySelector(".pcr-app");
-      if (toggle && app && app.classList.contains("hidden")) {
-        toggle.click();
-      }
+      if (wasClosed) toggle.click();
+
       const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
       nativeSetter.call(input, hex);
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
+
+      if (wasClosed) toggle.click(); // close it right back — see comment above
       return true;
     } catch (e) {
+      if (wasClosed && app && !app.classList.contains("hidden")) toggle.click(); // don't leave it open on error
       return false;
     }
   }
 
+  /**
+   * Our own "My Palette" section, inserted right before Flaticon's "History" label — kept
+   * separate from Flaticon's own lists entirely (rather than embedded inside `#last-icon-colors`
+   * the way an earlier version did) so it reads as its own clearly-labeled feature instead of
+   * mixing with Flaticon's transient history. Swatches still reuse Flaticon's `.color`/`button`
+   * markup purely so they inherit the site's own sizing/spacing for a native look.
+   */
+  function buildOwnSection() {
+    const section = document.createElement("div");
+    section.className = "fpm-own-section";
+    ownNodes.add(section);
+
+    const label = document.createElement("p");
+    label.className = "font-sm medium text__general--heading mg-bottom-lv2 fpm-own-label";
+    label.innerHTML = icon("palette", { size: 13 }) + " My Palette";
+    ownNodes.add(label);
+
+    const list = document.createElement("ul");
+    list.className = "colors row mg-none-i";
+    ownNodes.add(list);
+
+    section.append(label, list);
+    return { section, list };
+  }
+
   function buildOwnSwatchLi(hex, title) {
     const li = document.createElement("li");
-    li.className = "color fpm-own-swatch";
-    li.dataset.fpmOwn = "1"; // best-effort visual/debug marker; ownNodes is the real source of truth
+    li.className = "color";
     ownNodes.add(li);
 
     const btn = document.createElement("button");
@@ -393,6 +423,8 @@
       if (!applied) {
         const copied = await copyText(hex);
         showToast(copied ? `Copied ${hex} — Flaticon's color picker wasn't found here` : hex);
+      } else {
+        showToast(`Applied ${hex}`);
       }
     });
 
@@ -403,8 +435,6 @@
   function buildAddControlLi() {
     const li = document.createElement("li");
     li.className = "color fpm-add-swatch";
-    li.dataset.fpmOwn = "1";
-    li.dataset.fpmControl = "add";
     li.title = "Save a new color to My Palette";
     ownNodes.add(li);
 
@@ -433,16 +463,41 @@
     return li;
   }
 
-  let historyListEl = null;
-  const ownSwatchLis = new Map(); // hex -> <li> currently believed to be in historyListEl
+  let ownSectionEl = null;
+  let ownListEl = null;
+  const ownSwatchLis = new Map(); // hex -> <li> currently believed to be in ownListEl
   let addControlLi = null;
 
-  /** Add/remove our own <li> entries in the history list so it matches the saved palette.
-   *  Tracked entirely via `ownSwatchLis`/`addControlLi` (JS references), not DOM queries —
-   *  see the ownNodes comment above for why. Guarded by a small mutex: a single click can
-   *  trigger several near-simultaneous callers (storage change, DOM mutation, ...), and without
-   *  it two overlapping runs could each decide a color is "missing" before the other's insert
-   *  lands, producing a duplicate. */
+  function findHistoryLabel() {
+    return (
+      document.querySelector(FT_SEL.historyLabel) ||
+      Array.from(document.querySelectorAll("p,div,span")).find(
+        (el) => el.children.length === 0 && el.textContent.trim().toLowerCase() === "history"
+      ) ||
+      null
+    );
+  }
+
+  /** Make sure our "My Palette" section exists in the DOM, right before Flaticon's "History"
+   *  label. Re-inserts it if Flaticon's own re-render ever removed it. */
+  function ensureOwnSection() {
+    if (ownSectionEl && document.contains(ownSectionEl)) return ownListEl;
+    const historyLabel = findHistoryLabel();
+    if (!historyLabel) return null;
+    const built = buildOwnSection();
+    ownSectionEl = built.section;
+    ownListEl = built.list;
+    ownSwatchLis.clear();
+    addControlLi = null;
+    historyLabel.insertAdjacentElement("beforebegin", ownSectionEl);
+    return ownListEl;
+  }
+
+  /** Add/remove our own <li> entries in our own section so it matches the saved palette.
+   *  Tracked via `ownSwatchLis`/`addControlLi` (JS references), not DOM queries. Guarded by a
+   *  small mutex: a single click can trigger several near-simultaneous callers (storage change,
+   *  DOM mutation, ...), and without it two overlapping runs could each decide a color is
+   *  "missing" before the other's insert lands, producing a duplicate. */
   let syncInFlight = false;
   let syncQueued = false;
   async function syncOwnSwatches() {
@@ -463,7 +518,8 @@
   }
 
   async function doSyncOwnSwatches() {
-    if (!historyListEl || !document.contains(historyListEl)) return;
+    const list = ensureOwnSection();
+    if (!list) return;
     const palette = await window.FlaticonPaletteStorage.getPalette();
     const paletteHexes = new Set(palette.map((c) => c.hex));
 
@@ -475,21 +531,20 @@
       }
     }
 
-    // (Re)add anything missing — covers both "never added" and "Flaticon's own re-render
-    // dropped it from the DOM" (we still hold the reference, but document.contains says no).
+    // (Re)add anything missing.
     palette.forEach((c) => {
       const existing = ownSwatchLis.get(c.hex);
       if (existing && document.contains(existing)) return;
       const li = buildOwnSwatchLi(c.hex, c.name);
       ownSwatchLis.set(c.hex, li);
-      historyListEl.appendChild(li);
+      list.appendChild(li);
     });
 
     // Make sure the "+" add control exists, is in the DOM, and stays last.
     if (!addControlLi || !document.contains(addControlLi)) {
       addControlLi = buildAddControlLi();
     }
-    historyListEl.appendChild(addControlLi); // appendChild on an existing node just moves it
+    list.appendChild(addControlLi); // appendChild on an existing node just moves it
   }
 
   /**
@@ -596,8 +651,8 @@
     const textEl = panel.querySelector("#fpm-status-text");
     if (!textEl) return;
     textEl.textContent = connected
-      ? "Embedded in Flaticon's History — click any of your colors there to apply it"
-      : "Open an icon's color editor to see My Palette inside Flaticon's History section";
+      ? "Your colors now appear in their own section above Flaticon's History — click one to apply it"
+      : "Open an icon's color editor to see My Palette as its own section";
     panel.querySelector("#fpm-status").classList.toggle("fpm-status-on", connected);
     const badge = toggleBtn.querySelector("#fpm-toggle-badge");
     if (badge) badge.hidden = !connected;
@@ -607,14 +662,9 @@
     try {
       watchColorPanel(findColorsPanel());
       watchPickrResultInput();
+      syncOwnSwatches(); // idempotent: re-inserts/repairs our section if Flaticon's own re-render touched it
 
-      const found = findHistoryList();
-      if (found && found !== historyListEl) {
-        historyListEl = found;
-        syncOwnSwatches();
-      }
-
-      const connected = !!(historyListEl && document.contains(historyListEl));
+      const connected = !!(ownSectionEl && document.contains(ownSectionEl));
       if (connected !== editorConnected) setStatus(connected);
     } catch (e) {
       // Defensive: Flaticon's markup may have changed. Layer 1 (floating panel) still works.

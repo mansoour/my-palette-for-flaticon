@@ -8,6 +8,15 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Saved colors now live in their own "My Palette" section on the icon editor**, inserted right
+  before Flaticon's own "History" label, instead of being mixed into Flaticon's
+  `#last-icon-colors` list. Reads far more clearly as a distinct feature rather than looking like
+  part of Flaticon's own (transient) history.
+- **Applying a saved color no longer flashes Flaticon's color-picker popup open.** `applyHexViaPickr`
+  still has to open the picker once (Pickr/Flaticon only wire up their change handling after
+  it's been opened) but now does the open → set value → close sequence entirely synchronously,
+  before the browser gets a chance to paint — so the click reads as instant with no visible extra
+  step.
 - **All emoji and text-glyph icons (🎨 ⭐ 🟢 ⚪ 🗑 ★ ☆ ↗ ×) replaced with real inline SVG icons**
   from [Bootstrap Icons](https://icons.getbootstrap.com/) (MIT licensed), embedded locally in a
   new `src/shared/icons.js` — no CDN, no runtime fetch, consistent with the "nothing leaves your
@@ -24,11 +33,6 @@ uses [Semantic Versioning](https://semver.org/).
   with the host page. It's now driven by a dedicated CSS class or a real `display`/`opacity`
   toggle, plus outside-click and Escape-key handling like any modern popover — clicking the ✕,
   clicking elsewhere on the page, or pressing Escape now all close it reliably.
-- **Applying a saved color required picking a color with Flaticon's own tool first.** Testing
-  showed Flaticon/Pickr only wire up their change handling once the color-picker popup has been
-  opened at least once. `applyHexViaPickr` now opens it first (if it's closed) before setting the
-  hex value, matching what a real user does before typing or dragging a color — so it works on
-  the very first click now, not just after Flaticon's own picker has been used once already.
 - **A saved color could still occasionally get duplicated in the embedded History list on
   click.** Hardened `syncOwnSwatches` with a small mutex so the several near-simultaneous callers
   a single click can trigger (a storage-change event, a DOM-mutation callback, ...) can't

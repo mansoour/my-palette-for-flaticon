@@ -21,7 +21,7 @@ https://www.flaticon.com/free-icon/degree_4011018?related_id=4011018
 
 - **Unlimited saved colors** — add any hex color to your personal palette from the popup, the
   full dashboard, or directly on a Flaticon icon page.
-- **One click on any icon page** — a small floating 🎨 button appears on every flaticon.com page.
+- **One click on any icon page** — a small floating palette button appears on every flaticon.com page.
   Open it to see your saved palette and recent history without leaving the page.
 - **Automatic history** — every color you apply from your palette, and every color you pick with
   Flaticon's *own* color tool, is logged automatically with a timestamp and a link back to the
@@ -39,37 +39,36 @@ https://www.flaticon.com/free-icon/degree_4011018?related_id=4011018
 
 The extension has two layers, so it stays useful even as Flaticon's website evolves:
 
-1. **Guaranteed layer — the floating panel.** A small 🎨 button is injected on every
+1. **Guaranteed layer — the floating panel.** A small palette button is injected on every
    `flaticon.com` page. It works completely independently of Flaticon's own markup: add colors,
    browse your palette, copy any color to the clipboard, and see your recent history.
-2. **Embedded layer — directly inside Flaticon's own "History" list.** Flaticon's icon editor
-   renders the icon's colors, and its "History" of applied colors, as plain lists of
-   `<li class="color"><button data-actual="#hex" style="background:#hex"></button></li>`
-   elements (`#svg-icon-colors` and `#last-icon-colors`). Clicking a swatch in `#last-icon-colors`
-   re-applies that color to the icon — and since Flaticon keeps appending new, clickable entries
-   there as you pick colors, that click handling must live on the list itself (or an ancestor),
-   not on each individual button. So rather than reverse-engineering Flaticon's recolor logic,
-   this extension inserts one real `<li class="color">` per saved palette color directly into
-   `#last-icon-colors`, marked with a small teal ring, plus a dashed "+" swatch to save a new
-   color on the spot. Clicking one of your colors there reaches Flaticon's own click handling
-   exactly like a genuine history entry would, and recolors the icon the normal way — no
-   simulated events, no guessing at Flaticon's internals.
+2. **Embedded layer — a "My Palette" section on the icon editor, right before "History".**
+   Flaticon's icon editor renders the icon's own colors, and its "History" of applied colors, as
+   plain lists of `<li class="color"><button data-actual="#hex" style="background:#hex"></button>
+   </li>` elements (`#svg-icon-colors` and `#last-icon-colors`). This extension inserts its own
+   section using the same swatch markup — for consistent native sizing — but keeps it entirely
+   separate from Flaticon's own lists, labeled "My Palette", right above Flaticon's "History".
+   Clicking one of your colors there doesn't rely on Flaticon's click handling (testing showed
+   that's bound per-button at creation time, so a button inserted from outside never gets it);
+   instead it drives Flaticon's own Pickr hex field (`#icon-edit-color-picker .pcr-result`, a
+   [Pickr](https://github.com/Simonwep/pickr) instance) with the same events a real user typing
+   into it would fire. Pickr only wires up its change handling after being opened once, so the
+   extension opens it, sets the value, and closes it again — all synchronously in one step, before
+   the browser can paint, so no popup is ever visibly shown and the click feels instant.
 
-   The same list is also how colors are captured: whenever Flaticon adds a *new, non-ours* entry
-   to `#last-icon-colors` — whether you clicked one of the icon's own colors or dialed one in
-   with Flaticon's "Choose a new color" wheel (a [Pickr](https://github.com/Simonwep/pickr)
-   instance) — this extension mirrors that hex into its own history (tagged `Flaticon picker`),
-   so it survives page reloads instead of vanishing with Flaticon's own in-memory, per-visit
-   history.
+   Capturing colors watches `#last-icon-colors` separately: whenever Flaticon adds or updates an
+   entry there — whether from clicking one of the icon's own colors or dialing one in with
+   Flaticon's "Choose a new color" wheel — this extension mirrors that hex into its own history
+   (tagged `Flaticon picker`), so it survives page reloads instead of vanishing with Flaticon's
+   own in-memory, per-visit history.
 
 Because layer 2 depends on Flaticon's live HTML (selectors captured from flaticon.com in
 September 2026) and Flaticon can change that at any time without notice, it is written
 defensively (feature-detected, wrapped in `try/catch`, re-scanned on DOM changes, with a text-based
-fallback if the `#last-icon-colors` id ever changes) and is allowed to silently do nothing if it
-can't find what it's looking for — layer 1 always keeps working. If you notice the panel's status
-never switches to "Embedded in Flaticon's History" on an icon page, please open an issue with a
-screenshot of the editor's "History" section; selectors may just need an update (see
-[CONTRIBUTING.md](CONTRIBUTING.md)).
+fallback if Flaticon's ids ever change) and is allowed to silently do nothing if it can't find
+what it's looking for — layer 1 always keeps working. If you notice the panel's status never
+switches to "connected" on an icon page, please open an issue with a screenshot of the editor's
+"History" section; selectors may just need an update (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## Install
 
@@ -79,7 +78,7 @@ screenshot of the editor's "History" section; selectors may just need an update 
 2. Open `chrome://extensions` in Chrome (or any Chromium browser — Edge, Brave, etc.).
 3. Turn on **Developer mode** (top-right toggle).
 4. Click **Load unpacked** and select the project folder (the one containing `manifest.json`).
-5. Visit any Flaticon icon page and click the 🎨 button in the bottom-right corner.
+5. Visit any Flaticon icon page and click the palette button in the bottom-right corner.
 
 ### From the Chrome Web Store
 
