@@ -4,8 +4,18 @@
    `.fpm-panel-title`, `.fpm-cp-slider`) regardless of source order, silently reverting almost
    all of this file's actual styling back to browser defaults. Only rules that happened to also
    use an ID (`#fpm-panel`, `#fpm-toggle`) were winning their cascade tie. `:where()` keeps the
-   exact same reset behavior with none of that fight. */
-:where(#fpm-root, #fpm-root *) {
+   exact same reset behavior with none of that fight.
+
+   `:not(svg.fpm-icon, svg.fpm-icon *)` excludes our inline icon SVGs and everything inside them.
+   `all: revert` sets EVERY CSS property to its initial/inherited value, including one most
+   people have never heard of: Chrome supports a CSS `d` property (`d: path(...)`) alongside the
+   SVG `d` attribute, and its initial value is `none`. Reverting it counts as an explicit CSS
+   declaration, which — unlike the absence of one — always beats the presentation attribute, so
+   every `<path>` in an icon silently lost its actual shape (confirmed with a real render:
+   getBoundingClientRect() on the path came back 0×0 with this rule applied, and its real size
+   with it excluded). Our icons are fully self-contained (fill/viewBox/width/height all set as
+   attributes already), so excluding them from the reset loses nothing. */
+:where(#fpm-root, #fpm-root *):not(svg.fpm-icon, svg.fpm-icon *) {
   all: revert;
   box-sizing: border-box;
   font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
@@ -14,7 +24,7 @@
 #fpm-root {
   position: fixed;
   z-index: 2147483000;
-  right: 20px;
+  left: 20px;
   bottom: 20px;
   --fpm-accent: #12a17d;
   --fpm-accent-dark: #0c8267;
@@ -88,7 +98,7 @@ svg.fpm-icon {
 
 #fpm-panel {
   position: absolute;
-  right: 0;
+  left: 0;
   bottom: 64px;
   width: 308px;
   max-height: 72vh;
@@ -103,7 +113,7 @@ svg.fpm-icon {
   opacity: 0;
   pointer-events: none;
   transform: translateY(10px) scale(0.97);
-  transform-origin: bottom right;
+  transform-origin: bottom left;
   transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
 }
 
@@ -357,7 +367,7 @@ svg.fpm-icon {
 #fpm-toast {
   position: fixed;
   z-index: 2147483001;
-  right: 20px;
+  left: 20px;
   bottom: 82px;
   background: var(--fpm-ink, #16212c);
   color: #fff;
@@ -458,8 +468,9 @@ li.fpm-add-swatch {
 
 /* Popover used by the "+" control in the embedded "My Palette" section — appended to
    document.body (so Flaticon's own layout/overflow can't clip it), so it needs its own mini
-   reset + tokens rather than inheriting from #fpm-root. */
-:where(.fpm-add-popover, .fpm-add-popover *) {
+   reset + tokens rather than inheriting from #fpm-root. Icons excluded from the reset for the
+   same reason as the main #fpm-root rule above — see that comment. */
+:where(.fpm-add-popover, .fpm-add-popover *):not(svg.fpm-icon, svg.fpm-icon *) {
   all: revert;
   box-sizing: border-box;
   font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;

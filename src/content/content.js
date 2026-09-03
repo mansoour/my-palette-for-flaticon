@@ -62,6 +62,36 @@
     return window.FPMIcons ? window.FPMIcons.svg(name, opts) : "";
   }
 
+  /**
+   * Force every icon inside `container` to actually render, regardless of what Flaticon's own
+   * page CSS does. A previous fix relied purely on a stylesheet rule (`.fpm-icon { fill:
+   * currentColor !important; ... }`), which should out-rank anything non-important by CSS rules
+   * alone — but the icon still failed to show in practice, meaning something on the real page is
+   * winning that fight in a way an isolated test can't reproduce. This sidesteps the cascade
+   * entirely: it reads whatever color *did* actually resolve for the icon (inherited from its
+   * button/label, e.g. white on the teal toggle button), then sets that as an inline style with
+   * `!important` via the DOM API — inline `!important` beats any external stylesheet rule,
+   * `!important` or not, so there's no cascade left to lose. Safe to call repeatedly.
+   */
+  function hardenIcons(container) {
+    if (!container || !container.querySelectorAll) return;
+    container.querySelectorAll("svg.fpm-icon").forEach((svg) => {
+      let color = "";
+      try {
+        color = window.getComputedStyle(svg).color;
+      } catch (e) {
+        color = "";
+      }
+      if (!color || color === "rgba(0, 0, 0, 0)" || color === "transparent") color = "currentColor";
+      svg.style.setProperty("display", "inline-block", "important");
+      svg.style.setProperty("flex-shrink", "0", "important");
+      svg.style.setProperty("vertical-align", "middle", "important");
+      svg.style.setProperty("overflow", "visible", "important");
+      svg.style.setProperty("fill", color, "important");
+      svg.querySelectorAll("path").forEach((p) => p.style.setProperty("fill", "inherit", "important"));
+    });
+  }
+
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -136,6 +166,7 @@
     const show = await shouldShowFloatingPanel();
     if (show && document.body && !document.body.contains(root)) {
       document.body.appendChild(root);
+      hardenIcons(root);
     } else if (!show && document.body && document.body.contains(root)) {
       root.remove();
     }
@@ -497,6 +528,7 @@
       <button type="button" class="fpm-add-popover-btn">${icon("plus-lg", { size: 12 })} Add to palette</button>
     `;
     document.body.appendChild(pop);
+    hardenIcons(pop);
 
     const cp = window.FPMColorPicker.create(pop.querySelector("#fpm-add-popover-cp"), { initial: "#12a17d" });
     pop.querySelector(".fpm-add-popover-btn").addEventListener("click", async () => {
@@ -581,6 +613,7 @@
     ownSwatchLis.clear();
     addControlLi = null;
     historyLabel.insertAdjacentElement("beforebegin", ownSectionEl);
+    hardenIcons(ownSectionEl);
     return ownListEl;
   }
 
@@ -636,6 +669,7 @@
       addControlLi = buildAddControlLi();
     }
     list.appendChild(addControlLi); // appendChild on an existing node just moves it
+    hardenIcons(list);
   }
 
   /**
@@ -754,6 +788,8 @@
       watchColorPanel(findColorsPanel());
       watchPickrResultInput();
       syncOwnSwatches(); // idempotent: re-inserts/repairs our section if Flaticon's own re-render touched it
+      hardenIcons(root);
+      if (ownSectionEl) hardenIcons(ownSectionEl);
 
       const connected = !!(ownSectionEl && document.contains(ownSectionEl));
       if (connected !== editorConnected) setStatus(connected);

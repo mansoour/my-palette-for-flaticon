@@ -6,6 +6,12 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [1.1.0] — 2026-09-03
 
+### Changed
+
+- **The floating button now sits at the bottom-left corner of Flaticon pages** instead of
+  bottom-right (`#fpm-root`/`#fpm-panel`/`#fpm-toast` and the panel's open animation all updated
+  to anchor and expand from the left).
+
 ### Added
 
 - **Bootstrap 5** (self-hosted, MIT licensed, no CDN) now powers the popup and dashboard layout —
@@ -33,11 +39,27 @@ uses [Semantic Versioning](https://semver.org/).
   "+" control used a native `<input type="color">`, which turned out unreliable there (likely
   some interaction with Flaticon's own page scripts/re-renders). Replaced with a small popover
   built from the new custom color picker — no native color dialog involved at all.
-- **The floating toggle button's icon could render broken/invisible.** Hardened `.fpm-icon` with
-  explicit `fill`/`display` rules (`!important`, deliberately, to out-rank both our own
-  `all: revert` reset and any conflicting rule from Flaticon's own page styles) rather than
-  relying on the SVG's `fill="currentColor"` presentation attribute, which an ordinary CSS rule —
-  including our own reset — always wins over.
+- **The floating toggle button's icon was invisible — root cause finally nailed down.** An
+  `!important` fill/display rule (previous entry below) turned out not to be the real fix, since
+  the actual problem was a level below fill/color entirely: `all: revert` sets *every* CSS
+  property to its initial value, including one almost nobody has a reason to know about — Chrome
+  supports a CSS `d` property (`d: path(...)`) alongside the identically-named SVG `d` attribute
+  that actually defines a path's shape, and `d`'s initial value is `none`. Reverting it counts as
+  an explicit CSS declaration, which (unlike simply not styling `d` at all) always beats the
+  presentation attribute — so every icon's `<path>` silently lost its geometry. Confirmed with a
+  real render: `path.getBoundingClientRect()` came back `0×0` with the reset applied to icons, and
+  correct with it excluded. Fixed by excluding `svg.fpm-icon` and everything inside it from the
+  reset entirely (`:not(svg.fpm-icon, svg.fpm-icon *)`) — our icons are fully self-contained
+  (fill/viewBox/width/height are all already attributes), so they don't need the reset anyway.
+  Also added `hardenIcons()`, which re-applies icon color as an inline `!important` style (reading
+  whatever color actually resolved) after every place icons get inserted, as a second, completely
+  cascade-independent line of defense.
+- **The floating toggle button's icon could render broken/invisible** (superseded by the entry
+  above, kept here since the `!important` hardening it introduced is still in place as a second
+  line of defense). Hardened `.fpm-icon` with explicit `fill`/`display` rules (`!important`,
+  deliberately, to out-rank both our own `all: revert` reset and any conflicting rule from
+  Flaticon's own page styles) rather than relying on the SVG's `fill="currentColor"` presentation
+  attribute, which an ordinary CSS rule — including our own reset — always wins over.
 - **The floating panel and its popovers were rendering almost completely unstyled** (default
   browser buttons/sliders, no layout, no colors) — the actual root cause of the broken icon above
   and of "the styling isn't good" more generally. `#fpm-root, #fpm-root * { all: revert; ... }`
