@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.3] — 2026-09-03
+
+### Fixed
+
+- **Chrome Web Store upload rejected the package**: "The description field in manifest is too
+  long: 167. It exceeds the maximum size limit of 132 characters." `manifest.json`'s
+  `description` was 167 characters; Chrome's store manifest limit is 132. Shortened it to the
+  same substance in 113 characters.
+
 ## [1.1.2] — 2026-09-03
 
 ### Fixed
