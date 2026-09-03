@@ -168,16 +168,23 @@
 
   async function syncMounted() {
     const show = await shouldShowFloatingPanel();
-    if (show && document.body && !document.body.contains(root)) {
-      document.body.appendChild(root);
+    // Mounted on <html> (documentElement), not <body>. `position: fixed` is normally relative
+    // to the viewport — UNLESS an ancestor has a `transform`/`filter`/`perspective`/
+    // `will-change: transform`, which creates a new containing block for fixed descendants
+    // instead. That's a very common thing for real sites to put on <body> (slide-out menus,
+    // modal-blur backgrounds, GPU-accelerated scroll containers), and would silently reposition
+    // this button relative to body's own box instead of the screen — appending to <html>
+    // sidesteps that whole class of interference from the host page.
+    if (show && document.documentElement && !document.documentElement.contains(root)) {
+      document.documentElement.appendChild(root);
       hardenIcons(root);
-    } else if (!show && document.body && document.body.contains(root)) {
+    } else if (!show && document.documentElement && document.documentElement.contains(root)) {
       root.remove();
     }
   }
 
   function mount() {
-    if (document.body) syncMounted();
+    if (document.documentElement) syncMounted();
     else document.addEventListener("DOMContentLoaded", syncMounted, { once: true });
   }
   mount();
@@ -543,7 +550,10 @@
       <div id="fpm-add-popover-cp"></div>
       <button type="button" class="fpm-add-popover-btn">${icon("plus-lg", { size: 12 })} Add to palette</button>
     `;
-    document.body.appendChild(pop);
+    // Appended to <html>, not <body> — see the comment on syncMounted() for why: a transform/
+    // filter/will-change on <body> (common on real sites) would otherwise silently reposition
+    // this fixed-position popover relative to body's box instead of the viewport.
+    document.documentElement.appendChild(pop);
     hardenIcons(pop);
 
     const cp = window.FPMColorPicker.create(pop.querySelector("#fpm-add-popover-cp"), { initial: "#12a17d" });

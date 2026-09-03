@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] — 2026-09-03
+
+### Fixed
+
+- **The floating button and its popover could render in the wrong place on real Flaticon pages**
+  — anchored correctly in every isolated test page, yet consistently mispositioned on the live
+  site, identically in Chrome and Edge. Root cause: `position: fixed` is normally relative to the
+  viewport, *unless* an ancestor element has a `transform`, `filter`, `perspective`, or
+  `will-change: transform` — a very common thing for real sites to put on `<body>` (slide-out
+  menus, modal-blur backgrounds, "smooth scroll" libraries), which creates a new containing block
+  for fixed-position descendants relative to *that ancestor's box* instead of the screen. Since
+  this extension mounted its UI on `document.body`, any such property on Flaticon's `<body>`
+  would silently reposition it — invisible to any test page with a plain, untransformed `<body>`,
+  which is exactly why it never reproduced in isolation. Confirmed directly: a `position: fixed`
+  element appended to a `transform`-ed `<body>` visibly drifts from where an identical one
+  appended to `<html>` (`document.documentElement`) stays put. Fixed by mounting on
+  `document.documentElement` instead — the standard, robust practice for exactly this reason —
+  for both the floating button/panel and the embedded section's add-color popover.
+
 ## [1.1.0] — 2026-09-03
 
 ### Fixed
