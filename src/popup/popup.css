@@ -1,5 +1,19 @@
 @import url("../shared/theme.css");
 
+/* Re-tint Bootstrap's own CSS custom properties to the extension's teal, without recompiling its
+   Sass — bootstrap.min.css defines these on :root; loading after it and redeclaring the same
+   properties on :root wins the cascade (equal specificity, later source order). */
+:root {
+  --bs-primary: var(--fpm-accent);
+  --bs-primary-rgb: 18, 161, 125;
+  --bs-link-color: var(--fpm-accent-dark);
+  --bs-link-color-rgb: 12, 127, 98;
+  --bs-link-hover-color: var(--fpm-accent-dark);
+  --bs-body-font-family: var(--fpm-font);
+  --bs-border-radius: var(--fpm-radius-sm);
+  --bs-border-radius-sm: var(--fpm-radius-sm);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -10,154 +24,53 @@ body {
   font-family: var(--fpm-font);
   color: var(--fpm-text);
   background: var(--fpm-bg);
+  font-size: 13px;
 }
 
-.pop-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--fpm-border);
-}
-
-.pop-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.pop-title img {
+.fpm-header img {
   border-radius: 4px;
 }
 
-.pop-section {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--fpm-border);
+.fpm-link {
+  color: var(--fpm-accent-dark) !important;
+  font-weight: 600;
+  font-size: 12px;
 }
 
-.pop-section:last-of-type {
-  border-bottom: none;
+.fpm-link-muted {
+  font-size: 11px;
 }
 
-.pop-section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.pop-section-head h2 {
+.fpm-section-title {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--fpm-text-muted);
-  margin: 0;
   font-weight: 700;
+  margin: 0 0 8px;
 }
 
-.count-badge {
+.fpm-badge {
   background: var(--fpm-accent-light);
   color: var(--fpm-accent-dark);
-  font-size: 11px;
   font-weight: 700;
-  padding: 1px 7px;
-  border-radius: 999px;
-}
-
-.link-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: none;
-  color: var(--fpm-accent-dark);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 2px 4px;
-}
-
-.fpm-inline-icon {
-  display: inline-block;
-  vertical-align: -1px;
-}
-
-.link-btn:hover {
-  text-decoration: underline;
-}
-
-.link-btn.small {
   font-size: 11px;
-  color: var(--fpm-text-muted);
 }
 
-.add-row {
-  display: flex;
-  gap: 6px;
-}
-
-.color-preview {
-  width: 34px;
-  height: 34px;
-  flex-shrink: 0;
+#addColorPicker {
+  background: var(--fpm-bg-soft);
   border: 1px solid var(--fpm-border);
-  border-radius: var(--fpm-radius-sm);
-  background: repeating-conic-gradient(#e1e6ea 0% 25%, #fff 0% 50%) 50% / 10px 10px;
+  border-radius: var(--fpm-radius);
+  padding: 10px;
 }
 
-.add-row input[type="text"] {
-  flex: 1;
-  min-width: 0;
-  border: 1px solid var(--fpm-border);
-  border-radius: var(--fpm-radius-sm);
-  padding: 0 10px;
-  font-size: 13px;
-  font-family: inherit;
-}
-
-.primary-btn {
-  background: var(--fpm-accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--fpm-radius-sm);
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.primary-btn:hover {
-  background: var(--fpm-accent-dark);
-}
-
-.error-text {
-  color: var(--fpm-danger);
-  font-size: 11.5px;
-  margin: 6px 0 0;
-}
-
-.hint-text {
-  font-size: 11px;
-  color: var(--fpm-text-muted);
-  margin: 6px 0 0;
-  line-height: 1.4;
-}
-
-.hint-text .link-btn {
-  padding: 0;
-  font-size: inherit;
-  font-weight: 700;
-}
-
-.swatch-grid {
+.fpm-swatch-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   gap: 6px;
 }
 
-.swatch {
+.fpm-swatch {
   width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: var(--fpm-radius-sm);
@@ -167,12 +80,12 @@ body {
   padding: 0;
 }
 
-.swatch:hover {
+.fpm-swatch:hover {
   outline: 2px solid var(--fpm-accent);
   outline-offset: 1px;
 }
 
-.swatch .remove-x {
+.fpm-swatch .remove-x {
   position: absolute;
   top: -5px;
   right: -5px;
@@ -181,8 +94,6 @@ body {
   border-radius: 50%;
   background: #fff;
   border: 1px solid var(--fpm-border);
-  font-size: 10px;
-  line-height: 1;
   display: none;
   align-items: center;
   justify-content: center;
@@ -190,33 +101,19 @@ body {
   cursor: pointer;
 }
 
-.swatch:hover .remove-x {
+.fpm-swatch:hover .remove-x {
   display: flex;
 }
 
-.empty-text {
-  font-size: 12px;
-  color: var(--fpm-text-muted);
-  margin: 4px 0 0;
-  line-height: 1.4;
-}
-
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 150px;
-  overflow-y: auto;
-}
-
-.history-row {
+.fpm-history-row {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
+  padding: 3px 0;
 }
 
-.history-row .swatch-dot {
+.fpm-history-row .swatch-dot {
   width: 18px;
   height: 18px;
   border-radius: 5px;
@@ -225,7 +122,7 @@ body {
   cursor: pointer;
 }
 
-.history-row .hex {
+.fpm-history-row .hex {
   font-family: "Cascadia Code", Consolas, monospace;
   flex: 1;
   overflow: hidden;
@@ -233,7 +130,7 @@ body {
   white-space: nowrap;
 }
 
-.history-row .source-tag {
+.fpm-history-row .source-tag {
   font-size: 9.5px;
   padding: 1px 5px;
   border-radius: 999px;
@@ -242,7 +139,7 @@ body {
   white-space: nowrap;
 }
 
-.history-row .save-btn {
+.fpm-history-row .save-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -253,28 +150,126 @@ body {
   padding: 2px;
 }
 
-.history-row .save-btn:hover {
+.fpm-history-row .save-btn:hover {
   color: var(--fpm-accent-dark);
 }
 
-.pop-footer {
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: center;
-}
-
-.footer-note {
-  font-size: 10.5px;
-  color: var(--fpm-text-muted);
-  text-align: center;
-}
-
-.toast {
+.fpm-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 46px;
+  transform: translateX(-50%);
   background: var(--fpm-text);
   color: #fff;
   font-size: 11.5px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.fpm-footer {
+  font-size: 10px;
+  color: var(--fpm-text-muted);
+  line-height: 1.6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.fpm-footer a {
+  color: var(--fpm-text-muted);
+}
+
+.fpm-footer a:hover {
+  color: var(--fpm-accent-dark);
+}
+
+.fpm-footer-sep {
+  opacity: 0.5;
+}
+
+/* --- Custom color picker (shared design across popup/dashboard/panel) --- */
+.fpm-cp {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fpm-cp-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fpm-cp-preview {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--fpm-border, #e1e6ea);
+  flex-shrink: 0;
+}
+
+.fpm-cp-hex {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--fpm-border, #e1e6ea);
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 34px;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+}
+
+.fpm-cp-label {
+  font-size: 10.5px;
+  color: var(--fpm-muted, #6b7785);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.fpm-cp-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.fpm-cp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--fpm-accent, #12a17d);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.fpm-cp-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--fpm-accent, #12a17d);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.fpm-cp-hue {
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+
+.fpm-cp-sat {
+  background: linear-gradient(to right, hsl(var(--fpm-cp-h, 160) 0% 50%), hsl(var(--fpm-cp-h, 160) 100% 50%));
+}
+
+.fpm-cp-light {
+  background: linear-gradient(to right, #000, hsl(var(--fpm-cp-h, 160) var(--fpm-cp-s, 80%) 50%), #fff);
 }

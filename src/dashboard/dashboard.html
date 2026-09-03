@@ -3,93 +3,144 @@
   <head>
     <meta charset="utf-8" />
     <title>My Palette for Flaticon — Dashboard</title>
+    <link rel="stylesheet" href="../shared/vendor/bootstrap.min.css" />
     <link rel="stylesheet" href="dashboard.css" />
   </head>
   <body>
-    <div id="welcomeBanner" class="banner" hidden>
-      <div class="banner-inner">
-        <strong>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" class="fpm-inline-icon" aria-hidden="true"><path d="M8 5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m4 3a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M5.5 7a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m.5 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/><path d="M16 8c0 3.15-1.866 2.585-3.567 2.07C11.42 9.763 10.465 9.473 10 10c-.603.683-.475 1.819-.351 2.92C9.826 14.495 9.996 16 8 16a8 8 0 1 1 8-8m-8 7c.611 0 .654-.171.655-.176.078-.146.124-.464.07-1.119-.014-.168-.037-.37-.061-.591-.052-.464-.112-1.005-.118-1.462-.01-.707.083-1.61.704-2.314.369-.417.845-.578 1.272-.618.404-.038.812.026 1.16.104.343.077.702.186 1.025.284l.028.008c.346.105.658.199.953.266.653.148.904.083.991.024C14.717 9.38 15 9.161 15 8a7 7 0 1 0-7 7"/></svg>
-          Welcome!
-        </strong>
-        Save your favorite colors here, then visit any
-        <a href="https://www.flaticon.com/" target="_blank" rel="noopener">Flaticon</a> icon page —
-        your palette and history will be one click away, for free.
-        <button id="dismissWelcome" class="link-btn">Got it</button>
-      </div>
+    <div id="welcomeBanner" class="alert alert-success rounded-0 mb-0 text-center small py-2" hidden>
+      <strong>Welcome!</strong>
+      Save your favorite colors here, then visit any
+      <a href="https://www.flaticon.com/" target="_blank" rel="noopener">Flaticon</a> icon page —
+      your palette and history will be one click away, for free.
+      <button id="dismissWelcome" class="btn btn-sm btn-link p-0 ms-1 align-baseline">Got it</button>
     </div>
 
-    <header class="app-header">
-      <div class="brand">
-        <img src="../../icons/icon48.png" width="28" height="28" alt="" />
-        <div>
-          <h1>My Palette for Flaticon</h1>
-          <p>Free custom color palettes &amp; history for flaticon.com icons</p>
+    <header class="border-bottom py-3">
+      <div class="container d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-2">
+          <img src="../../icons/icon48.png" width="32" height="32" class="rounded" alt="" />
+          <div>
+            <h1 class="h5 mb-0 fw-bold">My Palette for Flaticon</h1>
+            <p class="text-muted small mb-0">Free custom color palettes &amp; history for flaticon.com icons</p>
+          </div>
         </div>
-      </div>
-      <div class="header-actions">
-        <button id="exportBtn" class="ghost-btn">Export JSON</button>
-        <label class="ghost-btn file-label">
-          Import JSON
-          <input type="file" id="importInput" accept="application/json" hidden />
-        </label>
+        <div class="d-flex gap-2">
+          <button id="exportBtn" class="btn btn-sm btn-outline-secondary">Export JSON</button>
+          <label class="btn btn-sm btn-outline-secondary mb-0">
+            Import JSON
+            <input type="file" id="importInput" accept="application/json" hidden />
+          </label>
+        </div>
       </div>
     </header>
 
-    <main class="app-main">
-      <section class="card">
-        <h2>Add a color</h2>
-        <form id="addForm" class="add-row">
-          <input type="color" id="addColorInput" value="#12a17d" aria-label="Pick a color" />
-          <input type="text" id="addHexInput" placeholder="#12A17D" maxlength="7" aria-label="Hex value" />
-          <input type="text" id="addNameInput" placeholder="Name (optional)" maxlength="40" aria-label="Color name" />
-          <button type="submit" class="primary-btn">Add to palette</button>
-        </form>
-        <p id="addError" class="error-text" hidden></p>
-      </section>
+    <main class="container py-4">
+      <ul class="nav nav-pills fpm-tabs mb-4" id="fpmTabs">
+        <li class="nav-item"><button type="button" class="nav-link active" data-tab="palette">Palette</button></li>
+        <li class="nav-item"><button type="button" class="nav-link" data-tab="history">History</button></li>
+        <li class="nav-item"><button type="button" class="nav-link" data-tab="settings">Settings</button></li>
+      </ul>
 
-      <section class="card">
-        <div class="card-head">
-          <h2>My palette</h2>
-          <span id="paletteCount" class="count-badge">0 colors</span>
-        </div>
-        <p class="hint">Drag to reorder. Click a swatch to copy its hex code.</p>
-        <div id="paletteGrid" class="palette-grid"></div>
-        <p id="paletteEmpty" class="empty-text" hidden>
-          No colors yet — add one above, or use the panel that appears on Flaticon icon pages.
-        </p>
-      </section>
-
-      <section class="card">
-        <div class="card-head">
-          <h2>History</h2>
-          <div class="card-head-actions">
-            <span id="historyCount" class="count-badge muted">0 entries</span>
-            <button id="clearHistoryBtn" class="ghost-btn small">Clear history</button>
+      <div id="tab-palette" class="fpm-tab-pane">
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="fpm-card-title">Add a color</h2>
+            <div class="row g-3 align-items-start">
+              <div class="col-12 col-sm-6">
+                <div id="addColorPicker"></div>
+              </div>
+              <div class="col-12 col-sm-6">
+                <label for="addNameInput" class="form-label small text-muted mb-1">Name (optional)</label>
+                <input type="text" id="addNameInput" class="form-control form-control-sm mb-2" placeholder="e.g. Brand teal" maxlength="40" />
+                <button type="button" id="addColorBtn" class="btn btn-primary btn-sm w-100 fw-semibold">Add to palette</button>
+                <p id="addError" class="text-danger small mt-2 mb-0" hidden></p>
+              </div>
+            </div>
           </div>
         </div>
-        <p class="hint">
-          Every color you apply from your palette, and every color you pick with Flaticon's own color
-          tool, is logged here automatically.
-        </p>
-        <div id="historyTable" class="history-table"></div>
-        <p id="historyEmpty" class="empty-text" hidden>
-          Nothing yet. Open a Flaticon icon page and start picking colors.
-        </p>
-      </section>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <h2 class="fpm-card-title mb-0">My palette</h2>
+              <span id="paletteCount" class="badge fpm-badge">0 colors</span>
+            </div>
+            <p class="text-muted small">Drag to reorder. Click a swatch to copy its hex code.</p>
+            <div id="paletteGrid" class="fpm-palette-grid"></div>
+            <p id="paletteEmpty" class="text-muted small mb-0" hidden>
+              No colors yet — add one above, or use the panel that appears on Flaticon icon pages.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-history" class="fpm-tab-pane" hidden>
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+              <h2 class="fpm-card-title mb-0">History</h2>
+              <div class="d-flex align-items-center gap-2">
+                <span id="historyCount" class="badge fpm-badge fpm-badge-muted">0 entries</span>
+                <button id="clearHistoryBtn" class="btn btn-sm btn-outline-danger">Clear history</button>
+              </div>
+            </div>
+            <p class="text-muted small">
+              Every color you apply from your palette, and every color you pick with Flaticon's own
+              color tool, is logged here automatically.
+            </p>
+            <div id="historyTable" class="fpm-history-table"></div>
+            <p id="historyEmpty" class="text-muted small mb-0" hidden>
+              Nothing yet. Open a Flaticon icon page and start picking colors.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-settings" class="fpm-tab-pane" hidden>
+        <div class="card">
+          <div class="card-body">
+            <h2 class="fpm-card-title">Floating panel on Flaticon</h2>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="settingShowPanel" />
+              <label class="form-check-label" for="settingShowPanel">
+                Show the floating palette button on Flaticon pages
+              </label>
+            </div>
+            <p class="text-muted small mt-2 mb-0">
+              Turn this off if you'd rather only use the "My Palette" section this extension adds
+              inside Flaticon's own icon editor, and the toolbar popup, without the extra floating
+              button in the corner of every Flaticon page.
+            </p>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-body">
+            <h2 class="fpm-card-title">About</h2>
+            <p class="text-muted small mb-1">
+              <strong>My Palette for Flaticon</strong> is free and open source, and stores all your
+              data locally in your browser (synced via your Google account if Chrome sync is on).
+              Nothing is ever sent to an external server.
+            </p>
+            <p class="text-muted small mb-0">
+              <a id="githubLink" href="#" target="_blank" rel="noopener">Source on GitHub</a> ·
+              <a id="privacyLinkSettings" href="#" target="_blank" rel="noopener">Privacy policy</a> ·
+              <a id="contactLinkSettings" href="#" target="_blank" rel="noopener">Contact</a>
+            </p>
+          </div>
+        </div>
+      </div>
     </main>
 
-    <footer class="app-footer">
-      <span id="toast" class="toast" hidden></span>
-      <p>
-        My Palette for Flaticon is free and open source, and stores all your data locally in your
-        browser (synced via your Google account if Chrome sync is on). Nothing is sent to any
-        external server. See the <a href="#" id="privacyLink">privacy policy</a>.
-      </p>
-    </footer>
+    <div id="toast" class="fpm-toast" hidden></div>
 
+    <footer id="fpmFooter" class="fpm-footer border-top py-3"></footer>
+
+    <script src="../shared/config.js"></script>
+    <script src="../shared/footer.js"></script>
     <script src="../shared/storage.js"></script>
     <script src="../shared/icons.js"></script>
+    <script src="../shared/colorpicker.js"></script>
     <script src="dashboard.js"></script>
   </body>
 </html>

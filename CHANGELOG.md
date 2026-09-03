@@ -4,7 +4,40 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] — 2026-09-03
+
+### Added
+
+- **Bootstrap 5** (self-hosted, MIT licensed, no CDN) now powers the popup and dashboard layout —
+  cards, buttons, forms, nav pills, form switches — re-tinted to the extension's teal via CSS
+  custom-property overrides rather than a Sass recompile.
+- **A custom color picker** (`src/shared/colorpicker.js`) — hue/saturation/lightness sliders plus
+  a hex field, no native `<input type="color">` anywhere in the product. Used in the popup, the
+  dashboard, the floating panel, and a new popover for the embedded "My Palette" section's "+"
+  control (see Fixed, below).
+- **A Settings page in the dashboard** to toggle whether the floating palette button shows up on
+  Flaticon pages at all, independent of the "My Palette" section embedded in Flaticon's own icon
+  editor. Stored in `chrome.storage.sync` under a new `fpm_settings` key.
+- **An attribution footer** (`src/shared/footer.js`), shown in the popup, the dashboard, and the
+  floating panel: copyright with a dynamic year range, "Built by Mansoour" (linking to
+  mansoour.com), and Website/Privacy/Contact links. The source includes a note asking that this
+  attribution be kept in redistributed copies — a request, not a technical restriction; the
+  project's MIT license does still permit removing it.
+- **A central config module** (`src/shared/config.js`) for the extension's real branding: website
+  (mansoour.com/mypalette), privacy policy, contact page, support email, and GitHub repo — used
+  everywhere those appear instead of duplicated/placeholder values.
+
+### Fixed
+
+- **Adding a new color from the "My Palette" section on Flaticon's icon editor was broken.** The
+  "+" control used a native `<input type="color">`, which turned out unreliable there (likely
+  some interaction with Flaticon's own page scripts/re-renders). Replaced with a small popover
+  built from the new custom color picker — no native color dialog involved at all.
+- **The floating toggle button's icon could render broken/invisible.** Hardened `.fpm-icon` with
+  explicit `fill`/`display` rules (`!important`, deliberately, to out-rank both our own
+  `all: revert` reset and any conflicting rule from Flaticon's own page styles) rather than
+  relying on the SVG's `fill="currentColor"` presentation attribute, which an ordinary CSS rule —
+  including our own reset — always wins over.
 
 ### Changed
 

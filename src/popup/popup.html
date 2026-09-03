@@ -3,63 +3,61 @@
   <head>
     <meta charset="utf-8" />
     <title>My Palette for Flaticon</title>
+    <link rel="stylesheet" href="../shared/vendor/bootstrap.min.css" />
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <header class="pop-header">
-      <div class="pop-title">
-        <img src="../../icons/icon48.png" width="20" height="20" alt="" />
-        <span>My Palette</span>
+    <header class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom fpm-header">
+      <div class="d-flex align-items-center gap-2">
+        <img src="../../icons/icon48.png" width="22" height="22" alt="" class="rounded" />
+        <span class="fw-bold small">My Palette</span>
       </div>
-      <button id="openDashboard" class="link-btn" title="Open full dashboard">
+      <button id="openDashboard" class="btn btn-sm btn-link text-decoration-none p-0 d-inline-flex align-items-center gap-1 fpm-link" title="Open full dashboard">
         Dashboard
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" class="fpm-inline-icon" aria-hidden="true"><path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5"/><path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5"/><path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0z"/></svg>
       </button>
     </header>
 
-    <section class="pop-section">
-      <div class="pop-section-head">
-        <h2>Add a color</h2>
-      </div>
-      <form id="addForm" class="add-row">
-        <span id="addPreview" class="color-preview" aria-hidden="true"></span>
-        <input type="text" id="addHexInput" placeholder="#12A17D" maxlength="7" aria-label="Hex value" />
-        <button type="submit" class="primary-btn">Add</button>
-      </form>
-      <p id="addError" class="error-text" hidden></p>
-      <p class="hint-text">
-        Tip: pick visually from the
-        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="currentColor" viewBox="0 0 16 16" class="fpm-inline-icon" aria-hidden="true"><path d="M8 5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m4 3a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M5.5 7a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m.5 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/><path d="M16 8c0 3.15-1.866 2.585-3.567 2.07C11.42 9.763 10.465 9.473 10 10c-.603.683-.475 1.819-.351 2.92C9.826 14.495 9.996 16 8 16a8 8 0 1 1 8-8m-8 7c.611 0 .654-.171.655-.176.078-.146.124-.464.07-1.119-.014-.168-.037-.37-.061-.591-.052-.464-.112-1.005-.118-1.462-.01-.707.083-1.61.704-2.314.369-.417.845-.578 1.272-.618.404-.038.812.026 1.16.104.343.077.702.186 1.025.284l.028.008c.346.105.658.199.953.266.653.148.904.083.991.024C14.717 9.38 15 9.161 15 8a7 7 0 1 0-7 7"/></svg>
-        panel on any Flaticon page, or the
-        <button type="button" id="openDashboardInline" class="link-btn small">dashboard</button>.
-      </p>
-    </section>
+    <div class="p-3">
+      <section class="mb-3">
+        <h2 class="fpm-section-title">Add a color</h2>
+        <div id="addColorPicker"></div>
+        <div class="d-grid mt-2">
+          <button id="addColorBtn" type="button" class="btn btn-sm btn-primary fw-semibold">Add to palette</button>
+        </div>
+        <p id="addError" class="text-danger small mt-2 mb-0" hidden></p>
+      </section>
 
-    <section class="pop-section">
-      <div class="pop-section-head">
-        <h2>My palette</h2>
-        <span id="paletteCount" class="count-badge">0</span>
-      </div>
-      <div id="paletteGrid" class="swatch-grid"></div>
-      <p id="paletteEmpty" class="empty-text">No colors saved yet. Add one above, or pick a color on any Flaticon icon page.</p>
-    </section>
+      <section class="mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h2 class="fpm-section-title mb-0">My palette</h2>
+          <span id="paletteCount" class="badge fpm-badge">0</span>
+        </div>
+        <div id="paletteGrid" class="fpm-swatch-grid"></div>
+        <p id="paletteEmpty" class="text-muted small mb-0">
+          No colors saved yet. Add one above, or pick a color on any Flaticon icon page.
+        </p>
+      </section>
 
-    <section class="pop-section">
-      <div class="pop-section-head">
-        <h2>Recent history</h2>
-        <button id="clearHistoryBtn" class="link-btn small">Clear</button>
-      </div>
-      <div id="historyList" class="history-list"></div>
-      <p id="historyEmpty" class="empty-text">Colors you pick on Flaticon will show up here automatically.</p>
-    </section>
+      <section>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h2 class="fpm-section-title mb-0">Recent history</h2>
+          <button id="clearHistoryBtn" class="btn btn-sm btn-link text-decoration-none p-0 text-muted fpm-link-muted">Clear</button>
+        </div>
+        <div id="historyList" class="d-flex flex-column gap-1"></div>
+        <p id="historyEmpty" class="text-muted small mb-0">Colors you pick on Flaticon will show up here automatically.</p>
+      </section>
+    </div>
 
-    <footer class="pop-footer">
-      <span id="toast" class="toast" hidden></span>
-      <span class="footer-note">Free &amp; open source · Works on flaticon.com</span>
-    </footer>
+    <div id="toast" class="fpm-toast" hidden></div>
 
+    <footer id="fpmFooter" class="fpm-footer border-top px-3 py-2 text-center"></footer>
+
+    <script src="../shared/config.js"></script>
+    <script src="../shared/footer.js"></script>
     <script src="../shared/storage.js"></script>
     <script src="../shared/icons.js"></script>
+    <script src="../shared/colorpicker.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

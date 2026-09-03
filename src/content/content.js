@@ -109,11 +109,8 @@
       <span class="fpm-status-dot"></span>
       <span id="fpm-status-text">Scanning this page for Flaticon's color editor…</span>
     </div>
-    <form class="fpm-add-row" id="fpm-add-form">
-      <input type="color" id="fpm-add-color" value="#12a17d" aria-label="Pick a color" />
-      <input type="text" id="fpm-add-hex" placeholder="#12A17D" maxlength="7" aria-label="Hex value" />
-      <button type="submit" class="fpm-primary-btn">${icon("plus-lg", { size: 14 })} Add</button>
-    </form>
+    <div id="fpm-add-picker"></div>
+    <button type="button" class="fpm-primary-btn fpm-primary-btn-block" id="fpm-add-btn">${icon("plus-lg", { size: 14 })} Add to palette</button>
     <div class="fpm-section-label">My colors</div>
     <div class="fpm-grid" id="fpm-grid"></div>
     <p class="fpm-empty" id="fpm-grid-empty" hidden>No saved colors yet. Add one above.</p>
@@ -123,13 +120,30 @@
     <div class="fpm-panel-foot">
       <button type="button" class="fpm-link-btn" id="fpm-open-dashboard">${icon("box-arrow-up-right", { size: 13 })} Open full dashboard</button>
     </div>
+    <div class="fpm-panel-footer" id="fpm-panel-footer"></div>
   `;
 
   root.append(toggleBtn, panel);
 
+  // Whether the floating button + panel show up at all is a user setting (Dashboard > Settings)
+  // — the "My Palette" section embedded in Flaticon's own editor is unaffected either way.
+  async function shouldShowFloatingPanel() {
+    const settings = await window.FlaticonPaletteStorage.getSettings();
+    return settings.showFloatingPanel !== false;
+  }
+
+  async function syncMounted() {
+    const show = await shouldShowFloatingPanel();
+    if (show && document.body && !document.body.contains(root)) {
+      document.body.appendChild(root);
+    } else if (!show && document.body && document.body.contains(root)) {
+      root.remove();
+    }
+  }
+
   function mount() {
-    if (document.body) document.body.appendChild(root);
-    else document.addEventListener("DOMContentLoaded", () => document.body.appendChild(root));
+    if (document.body) syncMounted();
+    else document.addEventListener("DOMContentLoaded", syncMounted, { once: true });
   }
   mount();
 
@@ -196,22 +210,23 @@
     if (e.key === "Escape" && panel.classList.contains("fpm-open")) setPanelOpen(false);
   });
 
-  const addColorInput = panel.querySelector("#fpm-add-color");
-  const addHexInput = panel.querySelector("#fpm-add-hex");
-  addColorInput.addEventListener("input", () => (addHexInput.value = addColorInput.value));
+  // Custom picker (hue/saturation/lightness sliders + hex field) rather than a native
+  // <input type="color"> — kept consistent with the popup/dashboard, both of which had to move
+  // off the native input for reliability reasons (see CHANGELOG.md).
+  const addPicker = window.FPMColorPicker.create(panel.querySelector("#fpm-add-picker"), { initial: "#12a17d" });
 
-  panel.querySelector("#fpm-add-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const clean = normalizeHex(addHexInput.value || addColorInput.value);
+  panel.querySelector("#fpm-add-btn").addEventListener("click", async () => {
+    const clean = normalizeHex(addPicker.getValue());
     if (!clean) {
       showToast("Enter a valid hex color");
       return;
     }
     await window.FlaticonPaletteStorage.addColor(clean, "", "dashboard");
-    addHexInput.value = "";
     renderPanelGrid();
     showToast(`Added ${clean}`);
   });
+
+  window.FPMFooter.mount(panel.querySelector("#fpm-panel-footer"));
 
   async function renderPanelGrid() {
     const list = await window.FlaticonPaletteStorage.getPalette();
@@ -452,34 +467,90 @@
     return li;
   }
 
+  // A previous version used a native <input type="color"> here, styled to look like a "+"
+  // swatch. That turned out unreliable inside Flaticon's editor (see CHANGELOG.md) — likely some
+  // interaction between the native OS color dialog and Flaticon's own page scripts/re-renders.
+  // A small custom popover (built from FPMColorPicker — plain sliders, no native dialog at all)
+  // sidesteps that whole class of problem.
+  let addPopoverEl = null;
+
+  function closeAddPopover() {
+    if (addPopoverEl) {
+      addPopoverEl.remove();
+      addPopoverEl = null;
+    }
+  }
+
+  function openAddPopover(anchorBtn) {
+    closeAddPopover();
+    const rect = anchorBtn.getBoundingClientRect();
+    const pop = document.createElement("div");
+    pop.className = "fpm-add-popover";
+    ownNodes.add(pop);
+    // `.fpm-add-popover` is `position: fixed` (viewport-relative), same coordinate space as
+    // getBoundingClientRect() — no scroll-offset adjustment needed (and adding one would be
+    // wrong here, drifting further off-anchor the more the page is scrolled).
+    pop.style.top = `${rect.bottom + 8}px`;
+    pop.style.left = `${Math.max(8, rect.left - 90)}px`;
+    pop.innerHTML = `
+      <div id="fpm-add-popover-cp"></div>
+      <button type="button" class="fpm-add-popover-btn">${icon("plus-lg", { size: 12 })} Add to palette</button>
+    `;
+    document.body.appendChild(pop);
+
+    const cp = window.FPMColorPicker.create(pop.querySelector("#fpm-add-popover-cp"), { initial: "#12a17d" });
+    pop.querySelector(".fpm-add-popover-btn").addEventListener("click", async () => {
+      const hex = normalizeHex(cp.getValue());
+      if (!hex) return;
+      await window.FlaticonPaletteStorage.addColor(hex, "", "dashboard");
+      showToast(`Saved ${hex} to My Palette`);
+      syncOwnSwatches();
+      renderPanelGrid();
+      closeAddPopover();
+    });
+
+    addPopoverEl = pop;
+    setTimeout(() => {
+      document.addEventListener(
+        "click",
+        function onOutsideClick(e) {
+          if (addPopoverEl && addPopoverEl.contains(e.target)) return;
+          closeAddPopover();
+          document.removeEventListener("click", onOutsideClick, true);
+          window.removeEventListener("scroll", onScrollClose, true);
+        },
+        true
+      );
+      // The popover is `position: fixed` (viewport-relative) while its anchor button scrolls
+      // with the page — without this it would visually drift off the "+" swatch on scroll.
+      window.addEventListener("scroll", onScrollClose, true);
+    }, 0);
+
+    function onScrollClose() {
+      closeAddPopover();
+      window.removeEventListener("scroll", onScrollClose, true);
+    }
+  }
+
   function buildAddControlLi() {
     const li = document.createElement("li");
     li.className = "color fpm-add-swatch";
     li.title = "Save a new color to My Palette";
     ownNodes.add(li);
 
-    const label = document.createElement("label");
-    label.className = "fpm-add-swatch-label";
-    label.innerHTML = icon("plus-lg", { size: 11, className: "fpm-add-swatch-plus" });
-    ownNodes.add(label);
-
-    const input = document.createElement("input");
-    input.type = "color";
-    input.value = "#12a17d";
-    input.className = "fpm-add-swatch-input";
-    ownNodes.add(input);
-
-    input.addEventListener("change", async () => {
-      const hex = normalizeHex(input.value);
-      if (!hex) return;
-      await window.FlaticonPaletteStorage.addColor(hex, "", "dashboard");
-      showToast(`Saved ${hex} to My Palette`);
-      syncOwnSwatches();
-      renderPanelGrid();
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "fpm-add-swatch-btn";
+    btn.innerHTML = icon("plus-lg", { size: 11, className: "fpm-add-swatch-plus" });
+    ownNodes.add(btn);
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (addPopoverEl) closeAddPopover();
+      else openAddPopover(btn);
     });
 
-    label.prepend(input);
-    li.append(label);
+    li.append(btn);
     return li;
   }
 
@@ -704,11 +775,12 @@
   }
   startObserving();
 
-  chrome.storage.onChanged.addListener(() => {
+  chrome.storage.onChanged.addListener((changes, area) => {
     if (panel.classList.contains("fpm-open")) {
       renderPanelGrid();
       renderPanelHistory();
     }
     syncOwnSwatches();
+    if (area === "sync" && changes.fpm_settings) syncMounted();
   });
 })();

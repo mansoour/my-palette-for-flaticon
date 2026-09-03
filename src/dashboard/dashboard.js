@@ -4,9 +4,8 @@
     dismissWelcome: document.getElementById("dismissWelcome"),
     exportBtn: document.getElementById("exportBtn"),
     importInput: document.getElementById("importInput"),
-    addForm: document.getElementById("addForm"),
-    addColorInput: document.getElementById("addColorInput"),
-    addHexInput: document.getElementById("addHexInput"),
+    addColorPicker: document.getElementById("addColorPicker"),
+    addColorBtn: document.getElementById("addColorBtn"),
     addNameInput: document.getElementById("addNameInput"),
     addError: document.getElementById("addError"),
     paletteGrid: document.getElementById("paletteGrid"),
@@ -17,20 +16,24 @@
     historyEmpty: document.getElementById("historyEmpty"),
     clearHistoryBtn: document.getElementById("clearHistoryBtn"),
     toast: document.getElementById("toast"),
-    privacyLink: document.getElementById("privacyLink"),
+    footer: document.getElementById("fpmFooter"),
+    tabs: document.getElementById("fpmTabs"),
+    settingShowPanel: document.getElementById("settingShowPanel"),
+    githubLink: document.getElementById("githubLink"),
+    privacyLinkSettings: document.getElementById("privacyLinkSettings"),
+    contactLinkSettings: document.getElementById("contactLinkSettings"),
   };
+
+  FPMFooter.mount(els.footer);
+  els.githubLink.href = FPM_CONFIG.githubUrl;
+  els.privacyLinkSettings.href = FPM_CONFIG.privacyUrl;
+  els.contactLinkSettings.href = FPM_CONFIG.contactUrl;
 
   const params = new URLSearchParams(location.search);
   if (params.get("welcome") === "1") {
     els.welcomeBanner.hidden = false;
   }
   els.dismissWelcome.addEventListener("click", () => (els.welcomeBanner.hidden = true));
-  els.privacyLink.addEventListener("click", (e) => {
-    e.preventDefault();
-    chrome.tabs.create({
-      url: "https://github.com/your-github-username/flaticon-custom-color-palette-managment/blob/main/PRIVACY_POLICY.md",
-    });
-  });
 
   let toastTimer = null;
   function showToast(msg) {
@@ -66,6 +69,32 @@
     unknown: "Unknown",
   };
 
+  // ---------- Tabs ----------
+
+  els.tabs.querySelectorAll(".nav-link").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      els.tabs.querySelectorAll(".nav-link").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".fpm-tab-pane").forEach((pane) => {
+        pane.hidden = pane.id !== `tab-${btn.dataset.tab}`;
+      });
+    });
+  });
+
+  // ---------- Settings ----------
+
+  async function loadSettings() {
+    const settings = await FlaticonPaletteStorage.getSettings();
+    els.settingShowPanel.checked = settings.showFloatingPanel !== false;
+  }
+
+  els.settingShowPanel.addEventListener("change", async () => {
+    await FlaticonPaletteStorage.updateSettings({ showFloatingPanel: els.settingShowPanel.checked });
+    showToast(els.settingShowPanel.checked ? "Floating panel enabled" : "Floating panel disabled");
+  });
+
+  loadSettings();
+
   // ---------- Palette ----------
 
   let dragSrcId = null;
@@ -78,7 +107,7 @@
 
     list.forEach((c) => {
       const item = document.createElement("div");
-      item.className = "palette-item";
+      item.className = "fpm-palette-item";
       item.draggable = true;
       item.dataset.id = c.id;
 
@@ -134,22 +163,17 @@
     });
   }
 
-  els.addColorInput.addEventListener("input", () => {
-    els.addHexInput.value = els.addColorInput.value;
-  });
+  const picker = FPMColorPicker.create(els.addColorPicker, { initial: "#12a17d" });
 
-  els.addForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  els.addColorBtn.addEventListener("click", async () => {
     els.addError.hidden = true;
-    const raw = els.addHexInput.value || els.addColorInput.value;
-    const clean = FlaticonPaletteStorage.normalizeHex(raw);
+    const clean = FlaticonPaletteStorage.normalizeHex(picker.getValue());
     if (!clean) {
       els.addError.textContent = "Enter a valid hex color, e.g. #12A17D";
       els.addError.hidden = false;
       return;
     }
     const { isNew } = await FlaticonPaletteStorage.addColor(clean, els.addNameInput.value.trim(), "dashboard");
-    els.addHexInput.value = "";
     els.addNameInput.value = "";
     await renderPalette();
     showToast(isNew ? `Added ${clean} to your palette` : `${clean} is already in your palette`);
@@ -167,7 +191,7 @@
 
     list.forEach((h) => {
       const row = document.createElement("div");
-      row.className = "history-row";
+      row.className = "fpm-history-row";
 
       const dot = document.createElement("span");
       dot.className = "swatch-dot";

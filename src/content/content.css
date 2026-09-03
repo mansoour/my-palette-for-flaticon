@@ -22,8 +22,25 @@
   --fpm-shadow: 0 16px 40px rgba(15, 23, 31, 0.18), 0 2px 8px rgba(15, 23, 31, 0.08);
 }
 
-.fpm-icon {
-  display: block;
+/* Hardened against two things that can otherwise make an inline SVG icon render broken/invisible:
+   our own `#fpm-root * { all: revert }` reset overriding the SVG's `fill="currentColor"`
+   presentation attribute (an ordinary CSS rule always wins over a presentation attribute), and,
+   for icons injected outside #fpm-root (the "My Palette" section on Flaticon's own page),
+   Flaticon's own site-wide CSS potentially resetting bare `svg`/`path` elements it doesn't know
+   are ours. `!important` here is deliberate: this rule exists specifically to out-rank whatever
+   else is touching these properties. */
+.fpm-icon,
+svg.fpm-icon {
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  vertical-align: middle !important;
+  fill: currentColor !important;
+  stroke: none !important;
+  overflow: visible !important;
+}
+
+.fpm-icon path {
+  fill: inherit !important;
 }
 
 #fpm-toggle {
@@ -163,42 +180,14 @@
   box-shadow: 0 0 0 3px rgba(18, 161, 125, 0.18);
 }
 
-.fpm-add-row {
-  display: flex;
-  gap: 7px;
-  margin-bottom: 16px;
-}
-
-.fpm-add-row input[type="color"] {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 1px solid var(--fpm-line);
-  border-radius: 10px;
-  cursor: pointer;
-  background: none;
-  flex-shrink: 0;
-}
-
-.fpm-add-row input[type="text"] {
-  flex: 1;
-  min-width: 0;
-  border: 1px solid var(--fpm-line);
-  border-radius: 10px;
-  padding: 0 10px;
-  font-size: 12.5px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.fpm-add-row input[type="text"]:focus {
-  outline: none;
-  border-color: var(--fpm-accent);
-  box-shadow: 0 0 0 3px rgba(18, 161, 125, 0.15);
+#fpm-add-picker {
+  margin-bottom: 10px;
 }
 
 .fpm-primary-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   background: var(--fpm-accent);
   color: #fff;
@@ -213,6 +202,39 @@
 
 .fpm-primary-btn:hover {
   background: var(--fpm-accent-dark);
+}
+
+.fpm-primary-btn-block {
+  width: 100%;
+  height: 34px;
+  margin-bottom: 16px;
+}
+
+.fpm-panel-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--fpm-line);
+  font-size: 10px;
+  color: var(--fpm-muted);
+  line-height: 1.6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  text-align: center;
+}
+
+.fpm-panel-footer a {
+  color: var(--fpm-muted);
+}
+
+.fpm-panel-footer a:hover {
+  color: var(--fpm-accent-dark);
+}
+
+.fpm-panel-footer .fpm-footer-sep {
+  opacity: 0.5;
 }
 
 .fpm-section-label {
@@ -403,8 +425,7 @@ li.fpm-add-swatch {
   position: relative;
 }
 
-.fpm-add-swatch-label {
-  position: relative;
+.fpm-add-swatch-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -414,22 +435,142 @@ li.fpm-add-swatch {
   min-height: 24px;
   border-radius: 6px;
   border: 1.5px dashed #12a17d;
+  background: none;
   cursor: pointer;
   box-sizing: border-box;
+  padding: 0;
 }
 
-.fpm-add-swatch-input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  border: none;
-  padding: 0;
+.fpm-add-swatch-btn:hover {
+  background: #e6f7f2;
 }
 
 .fpm-add-swatch-plus {
   pointer-events: none;
   color: #12a17d;
+}
+
+/* Popover used by the "+" control in the embedded "My Palette" section — appended to
+   document.body (so Flaticon's own layout/overflow can't clip it), so it needs its own mini
+   reset + tokens rather than inheriting from #fpm-root. */
+.fpm-add-popover,
+.fpm-add-popover * {
+  all: revert;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+}
+
+.fpm-add-popover {
+  position: fixed;
+  z-index: 2147483000;
+  width: 220px;
+  background: #ffffff;
+  border: 1px solid #e6e9ec;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15, 23, 31, 0.18), 0 2px 8px rgba(15, 23, 31, 0.08);
+  padding: 14px;
+}
+
+.fpm-add-popover-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  background: #12a17d;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fpm-add-popover-btn:hover {
+  background: #0c8267;
+}
+
+/* --- Custom color picker (shared design across popup/dashboard/panel) --- */
+.fpm-cp {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fpm-cp-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fpm-cp-preview {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--fpm-border, #e1e6ea);
+  flex-shrink: 0;
+}
+
+.fpm-cp-hex {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--fpm-border, #e1e6ea);
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 34px;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+}
+
+.fpm-cp-label {
+  font-size: 10.5px;
+  color: var(--fpm-muted, #6b7785);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.fpm-cp-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.fpm-cp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--fpm-accent, #12a17d);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.fpm-cp-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--fpm-accent, #12a17d);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.fpm-cp-hue {
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+
+.fpm-cp-sat {
+  background: linear-gradient(to right, hsl(var(--fpm-cp-h, 160) 0% 50%), hsl(var(--fpm-cp-h, 160) 100% 50%));
+}
+
+.fpm-cp-light {
+  background: linear-gradient(to right, #000, hsl(var(--fpm-cp-h, 160) var(--fpm-cp-s, 80%) 50%), #fff);
 }

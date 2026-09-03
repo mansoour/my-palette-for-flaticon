@@ -31,7 +31,9 @@ WHAT IT DOES
 • When you pick a color using Flaticon's own color tool, this extension quietly saves it to your
   history too — so you never lose a color you liked.
 • A full dashboard lets you manage your whole palette: add, rename, reorder, delete, search your
-  history, and export/import everything as a JSON backup.
+  history, export/import everything as a JSON backup, and toggle the floating button on or off.
+• A built-in custom color picker (hue/saturation/lightness sliders) everywhere you add a color —
+  no clunky native color-picker dialogs.
 
 WHY
 Flaticon's built-in editor lets you recolor icons, but saving a named, reusable color palette is
@@ -42,7 +44,7 @@ subscription.
 PRIVACY FIRST
 Everything is stored locally in your browser with Chrome's built-in storage APIs. There is no
 backend, no analytics, and no tracking. Nothing you save is ever sent anywhere. Full privacy
-policy: https://github.com/your-github-username/flaticon-custom-color-palette-managment/blob/main/PRIVACY_POLICY.md
+policy: https://github.com/mansoour/my-palette-for-flaticon/blob/main/PRIVACY_POLICY.md
 
 HOW TO USE
 1. Click the extension icon to open the popup, or the palette button that appears on
@@ -57,7 +59,7 @@ This is an independent, unofficial project and is not affiliated with, endorsed 
 to Flaticon or Freepik Company.
 
 Open source (MIT licensed) — contributions welcome:
-https://github.com/your-github-username/flaticon-custom-color-palette-managment
+https://github.com/mansoour/my-palette-for-flaticon
 ```
 
 ## Category
@@ -115,10 +117,8 @@ Use `store/icon-512.png` (generated in this repo) as the base mark for these.
 
 ## Submission checklist
 
-- [ ] Replace every `your-github-username` placeholder in this repo with the real GitHub repo
-      path (README.md, PRIVACY_POLICY.md, dashboard.js privacy link, this file).
-- [ ] Replace `your-support-email@example.com` in `manifest.json` and `PRIVACY_POLICY.md` with a
-      real support contact.
+- [x] GitHub repo, support email, website, privacy, and contact links are all set to their real
+      values (see `src/shared/config.js`, `manifest.json`, `PRIVACY_POLICY.md`).
 - [ ] Bump `version` in `manifest.json` if this isn't the first submission.
 - [ ] Run `scripts/package.sh` (or `.ps1`) to build the upload zip.
 - [ ] Take real screenshots per the list above and drop them in `store/screenshots/`.

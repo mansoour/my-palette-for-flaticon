@@ -4,6 +4,12 @@ A free, open-source Chrome extension that gives [Flaticon](https://www.flaticon.
 **unlimited custom color palettes** and **automatic color history** — the "Custom palette"
 feature Flaticon otherwise locks behind a paid subscription.
 
+**[Website](https://mansoour.com/mypalette/)** ·
+**[Privacy policy](https://mansoour.com/mypalette/privacy-policy.html)** ·
+**[Contact](https://mansoour.com/mypalette/contact.html)** ·
+**[GitHub](https://github.com/mansoour/my-palette-for-flaticon)** ·
+Built by [Mansoour](https://mansoour.com)
+
 > Not affiliated with, endorsed by, or connected to Flaticon / Freepik Company in any way.
 > This is an independent, unofficial browser extension.
 
@@ -30,10 +36,18 @@ https://www.flaticon.com/free-icon/degree_4011018?related_id=4011018
   manage your whole palette: add, rename, reorder (drag & drop), delete, and browse/search your
   full history.
 - **Import / export** — back up or move your palette and history as a single JSON file.
+- **Custom color picker everywhere** — a hue/saturation/lightness slider picker used in the
+  popup, dashboard, floating panel, and the embedded editor section. No native
+  `<input type="color">` anywhere, since that has caused real problems (see
+  [CHANGELOG.md](CHANGELOG.md)): it closes an extension popup on open, and turned out unreliable
+  when embedded in Flaticon's own editor page.
+- **A settings page** (Dashboard → Settings) to turn the floating panel on Flaticon pages on or
+  off, independent of the "My Palette" section embedded in Flaticon's own editor.
 - **Private by design** — everything is stored with the standard `chrome.storage` API
-  (`sync` for your palette, `local` for history). Nothing ever leaves your browser; there is no
-  backend server. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
-- **Free & open source**, MIT licensed, no ads, no account required.
+  (`sync` for your palette and settings, `local` for history). Nothing ever leaves your browser;
+  there is no backend server. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
+- **Free & open source**, MIT licensed, no ads, no account required, built with
+  [Bootstrap 5](https://getbootstrap.com/) (self-hosted, no CDN) for the popup and dashboard.
 
 ## How it works
 
@@ -96,10 +110,15 @@ src/
   background/background.js   Service worker (badge count, opens dashboard)
   content/content.js          Injected on flaticon.com — floating panel + editor integration
   content/content.css
-  popup/                      Toolbar popup (quick add / quick access)
-  dashboard/                  Full-page palette & history manager (options page)
-  shared/storage.js           chrome.storage wrapper shared by all three surfaces
+  popup/                      Toolbar popup (quick add / quick access), Bootstrap 5 styled
+  dashboard/                  Full-page palette, history & settings manager (options page)
+  shared/storage.js           chrome.storage wrapper shared by all surfaces
+  shared/config.js            Branding/links (website, privacy, contact, GitHub, support email)
+  shared/footer.js            Shared attribution footer, rendered on popup/dashboard/panel
+  shared/colorpicker.js       Custom hue/saturation/lightness color picker (no native <input>)
+  shared/icons.js             Inline Bootstrap Icons used across the UI
   shared/theme.css            Shared design tokens
+  shared/vendor/bootstrap.min.css   Self-hosted Bootstrap 5 (MIT), used by popup + dashboard
 icons/                        Extension icons (16/48/128 px)
 store/                        Chrome Web Store listing copy, promo assets, screenshots
 scripts/                      Packaging helpers for the Web Store zip

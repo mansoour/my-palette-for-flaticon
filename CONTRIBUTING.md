@@ -55,4 +55,4 @@ floating panel, that's a higher-priority bug.
 ## Reporting security issues
 
 Please don't open a public issue for a security concern. Email
-**your-support-email@example.com** instead (see `PRIVACY_POLICY.md` for the current contact).
+**me@mansoour.com** instead (see `PRIVACY_POLICY.md` for the current contact).

@@ -7,8 +7,9 @@
  *   - the dashboard (options page)
  *
  * Data model:
- *   palette: [{ id, hex, name, createdAt }]        -> chrome.storage.sync (small, syncs across devices)
- *   history: [{ id, hex, source, pageUrl, pageTitle, iconId, timestamp }] -> chrome.storage.local (larger, capped)
+ *   palette:  [{ id, hex, name, createdAt }]       -> chrome.storage.sync (small, syncs across devices)
+ *   history:  [{ id, hex, source, pageUrl, pageTitle, iconId, timestamp }] -> chrome.storage.local (larger, capped)
+ *   settings: { showFloatingPanel }                -> chrome.storage.sync (small, syncs across devices)
  *
  * `source` values used across the extension:
  *   "dashboard"        - added manually from the dashboard/popup
@@ -18,8 +19,12 @@
 const FlaticonPaletteStorage = (function () {
   const PALETTE_KEY = "fpm_palette";
   const HISTORY_KEY = "fpm_history";
+  const SETTINGS_KEY = "fpm_settings";
   const MAX_HISTORY = 200;
   const MAX_PALETTE = 500;
+  const DEFAULT_SETTINGS = {
+    showFloatingPanel: true, // the floating palette button + panel injected on flaticon.com
+  };
 
   function uid() {
     return "c_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
@@ -192,6 +197,20 @@ const FlaticonPaletteStorage = (function () {
     return exportAll();
   }
 
+  function getSettings() {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get([SETTINGS_KEY], (res) => resolve({ ...DEFAULT_SETTINGS, ...(res[SETTINGS_KEY] || {}) }));
+    });
+  }
+
+  async function updateSettings(patch) {
+    const current = await getSettings();
+    const next = { ...current, ...patch };
+    return new Promise((resolve) => {
+      chrome.storage.sync.set({ [SETTINGS_KEY]: next }, () => resolve(next));
+    });
+  }
+
   return {
     normalizeHex,
     getPalette,
@@ -205,6 +224,8 @@ const FlaticonPaletteStorage = (function () {
     clearHistory,
     exportAll,
     importAll,
+    getSettings,
+    updateSettings,
   };
 })();
 

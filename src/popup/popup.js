@@ -1,10 +1,8 @@
 (async function () {
   const els = {
-    addForm: document.getElementById("addForm"),
-    addPreview: document.getElementById("addPreview"),
-    addHexInput: document.getElementById("addHexInput"),
+    addColorPicker: document.getElementById("addColorPicker"),
+    addColorBtn: document.getElementById("addColorBtn"),
     addError: document.getElementById("addError"),
-    openDashboardInline: document.getElementById("openDashboardInline"),
     paletteGrid: document.getElementById("paletteGrid"),
     paletteCount: document.getElementById("paletteCount"),
     paletteEmpty: document.getElementById("paletteEmpty"),
@@ -13,7 +11,10 @@
     clearHistoryBtn: document.getElementById("clearHistoryBtn"),
     openDashboard: document.getElementById("openDashboard"),
     toast: document.getElementById("toast"),
+    footer: document.getElementById("fpmFooter"),
   };
+
+  FPMFooter.mount(els.footer);
 
   let toastTimer = null;
   function showToast(msg) {
@@ -44,7 +45,7 @@
 
   const SOURCE_LABEL = {
     "flaticon-picker": "Flaticon",
-    "dashboard": "Added",
+    dashboard: "Added",
     "applied-to-icon": "Applied",
     unknown: "",
   };
@@ -56,7 +57,7 @@
     els.paletteGrid.innerHTML = "";
     list.forEach((c) => {
       const btn = document.createElement("button");
-      btn.className = "swatch";
+      btn.className = "fpm-swatch";
       btn.style.background = c.hex;
       btn.title = c.name ? `${c.name} — ${c.hex} (click to copy)` : `${c.hex} (click to copy)`;
       btn.addEventListener("click", async () => {
@@ -88,7 +89,7 @@
 
     list.forEach((h) => {
       const row = document.createElement("div");
-      row.className = "history-row";
+      row.className = "fpm-history-row";
 
       const dot = document.createElement("span");
       dot.className = "swatch-dot";
@@ -126,32 +127,24 @@
     });
   }
 
-  // Note: deliberately a plain text field, not <input type="color"> — opening that native
-  // color-picker dialog steals focus from this popup, which Chrome treats as a blur and closes
-  // the popup before a color can be picked. See CHANGELOG.md.
-  els.addHexInput.addEventListener("input", () => {
-    const clean = FlaticonPaletteStorage.normalizeHex(els.addHexInput.value);
-    els.addPreview.style.background = clean || "transparent";
-  });
+  // Custom picker (hue/saturation/lightness sliders + hex field) instead of a native
+  // <input type="color"> — opening that native dialog steals focus from this popup, which
+  // Chrome treats as a blur and closes the popup before a color can be picked. See CHANGELOG.md.
+  const picker = FPMColorPicker.create(els.addColorPicker, { initial: "#12a17d" });
 
-  els.addForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  els.addColorBtn.addEventListener("click", async () => {
     els.addError.hidden = true;
-    const clean = FlaticonPaletteStorage.normalizeHex(els.addHexInput.value);
+    const clean = FlaticonPaletteStorage.normalizeHex(picker.getValue());
     if (!clean) {
       els.addError.textContent = "Enter a valid hex color, e.g. #12A17D";
       els.addError.hidden = false;
       return;
     }
     const { isNew } = await FlaticonPaletteStorage.addColor(clean, "", "dashboard");
-    els.addHexInput.value = "";
-    els.addPreview.style.background = "transparent";
     await renderPalette();
     await renderHistory();
     showToast(isNew ? `Added ${clean}` : `${clean} already saved`);
   });
-
-  els.openDashboardInline.addEventListener("click", () => chrome.runtime.openOptionsPage());
 
   els.clearHistoryBtn.addEventListener("click", async () => {
     if (!confirm("Clear all color history? This can't be undone.")) return;

@@ -1,6 +1,10 @@
 # Privacy Policy — My Palette for Flaticon
 
-_Last updated: 2026-09-02_
+_Last updated: 2026-09-03_
+
+> The canonical, hosted copy of this policy lives at
+> **https://mansoour.com/mypalette/privacy-policy.html** (linked from the extension itself). This
+> file is that same content, kept in the repository as the source of truth it's published from.
 
 **My Palette for Flaticon** ("the extension") is a free, independent browser extension. It is
 **not affiliated with Flaticon or Freepik Company**.
@@ -19,6 +23,7 @@ _Last updated: 2026-09-02_
 | Palette | The hex colors you save, an optional name, and when you added them | `chrome.storage.sync` (syncs across your own signed-in Chrome browsers, via your Google account — this is standard Chrome behavior, not something the extension itself transmits) | Show your saved colors in the popup, dashboard, and on Flaticon pages |
 | History | Colors you applied or that were detected from Flaticon's own color picker, the Flaticon page URL/title they came from, and a timestamp | `chrome.storage.local` (this device only) | Let you look back at and re-save recently used colors |
 | First-run flag | A boolean marking whether you've seen the welcome screen | `chrome.storage.local` | Show the welcome banner only once |
+| Settings | Your preference for whether the floating palette button shows up on Flaticon pages | `chrome.storage.sync` | Remember that choice across your devices |
 
 None of this data is visible to us (the developers), to Flaticon, or to any third party. It never
 leaves your browser except through Chrome's own built-in sync mechanism, which is controlled by
@@ -54,7 +59,8 @@ GitHub repository, with a new "Last updated" date.
 
 ## Contact
 
-Questions about this policy or the extension's data handling can be sent to:
-**your-support-email@example.com** (replace with the contact address you want public), or opened
-as an issue on the
-[GitHub repository](https://github.com/your-github-username/flaticon-custom-color-palette-managment).
+Questions about this policy or the extension's data handling can be sent via:
+
+- Email: **me@mansoour.com**
+- Contact form: **https://mansoour.com/mypalette/contact.html**
+- An issue on the [GitHub repository](https://github.com/mansoour/my-palette-for-flaticon)
