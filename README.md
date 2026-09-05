@@ -1,14 +1,8 @@
-# My Palette for Flaticon 🎨
+# My Palette for Flaticon
 
 A free, open-source Chrome extension that gives [Flaticon](https://www.flaticon.com/) users
 **unlimited custom color palettes** and **automatic color history** — the "Custom palette"
 feature Flaticon otherwise locks behind a paid subscription.
-
-**[Website](https://mansoour.com/mypalette/)** ·
-**[Privacy policy](https://mansoour.com/mypalette/privacy-policy.html)** ·
-**[Contact](https://mansoour.com/mypalette/contact.html)** ·
-**[GitHub](https://github.com/mansoour/my-palette-for-flaticon)** ·
-Built by [Mansoour](https://mansoour.com)
 
 > Not affiliated with, endorsed by, or connected to Flaticon / Freepik Company in any way.
 > This is an independent, unofficial browser extension.
@@ -17,11 +11,13 @@ Built by [Mansoour](https://mansoour.com)
 
 Flaticon's built-in icon editor lets you recolor an icon from the colors already in it, or pick
 one new color with a color wheel — but **saving a reusable custom palette is a paid feature**
-(you'll see a 👑 next to "Custom palette" in the editor). This extension adds that missing piece
+(you'll see a small crown icon next to "Custom palette" in the editor). This extension adds that missing piece
 for free, entirely client-side, using your own browser storage.
 
 Example icon page this was built against:
 https://www.flaticon.com/free-icon/degree_4011018?related_id=4011018
+
+[![Get it on the Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Install-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/my-palette-for-flaticon-%E2%80%94/lgncnbgpmbpcbnnkjojmekbhgeelmiia)
 
 ## Screenshots
 
@@ -74,10 +70,10 @@ The extension has three layers, so it stays useful even as Flaticon's website ev
 
 2. **Embedded layer — a "My Palette" section on the icon editor, right before "History".**
    Flaticon's icon editor renders the icon's own colors, and its "History" of applied colors, as
-   plain lists of `<li class="color"><button data-actual="#hex" style="background:#hex"></button>
-   </li>` elements (`#svg-icon-colors` and `#last-icon-colors`). This extension inserts its own
-   section using the same swatch markup — for consistent native sizing — but keeps it entirely
-   separate from Flaticon's own lists, labeled "My Palette", right above Flaticon's "History".
+   plain lists of `<li class="color"><button data-actual="#hex" style="background:#hex"></button></li>`
+   elements (`#svg-icon-colors` and `#last-icon-colors`). This extension inserts its own section
+   using the same swatch markup — for consistent native sizing — but keeps it entirely separate
+   from Flaticon's own lists, labeled "My Palette", right above Flaticon's "History".
 
    Clicking one of your colors there doesn't rely on Flaticon's click handling (testing showed
    that's bound per-button at creation time, so a button inserted from outside never gets it);
@@ -114,20 +110,19 @@ screenshot of the editor's "History" section; selectors may just need an update 
 
 ## Install
 
-### From source (recommended for now)
+### From the Chrome Web Store
+
+Install it directly from the
+[Chrome Web Store listing](https://chromewebstore.google.com/detail/my-palette-for-flaticon-%E2%80%94/lgncnbgpmbpcbnnkjojmekbhgeelmiia).
+See [store/STORE_LISTING.md](store/STORE_LISTING.md) for the listing copy and submission checklist.
+
+### From source (for contributors)
 
 1. Download or clone this repository.
 2. Open `chrome://extensions` in Chrome (or any Chromium browser — Edge, Brave, etc.).
 3. Turn on **Developer mode** (top-right toggle).
 4. Click **Load unpacked** and select the project folder (the one containing `manifest.json`).
 5. Visit any Flaticon icon page and click the palette button in the bottom-right corner.
-
-### From the Chrome Web Store
-
-📤 **Submitted and awaiting review.** This extension has been submitted to the Chrome Web Store
-and is currently in Google's review queue — it is not published yet. The store listing will be
-linked here as soon as it goes live. See [store/STORE_LISTING.md](store/STORE_LISTING.md) for the
-listing copy and submission checklist in the meantime.
 
 ## Project structure
 
@@ -164,9 +159,6 @@ To package a zip for the Chrome Web Store:
 ```sh
 bash scripts/package.sh        # or scripts/package.ps1 on Windows PowerShell
 ```
-
-This produces `dist/my-palette-for-flaticon-<version>.zip`, ready to upload in the
-[Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole).
 
 ## Known limitations
 

@@ -119,8 +119,7 @@ Use `store/icon-512.png` (generated in this repo) as the base mark for these.
 - [x] Fill in the Developer Dashboard's Privacy Practices tab using the justifications above.
 - [x] Submit for review.
 
-> **Status: submitted, awaiting Google's review.** Not yet published on the Chrome Web Store.
-> Once it's live, the listing URL gets linked from README.md's "Install" section and from
-> `src/shared/config.js`'s `homepageUrl`-adjacent links. Any change requiring a re-submission
-> (a new zip) should bump `version` in `manifest.json` again and add a new `CHANGELOG.md` entry
-> first.
+> **Status: published.** Live at
+> https://chromewebstore.google.com/detail/my-palette-for-flaticon-%E2%80%94/lgncnbgpmbpcbnnkjojmekbhgeelmiia
+> — linked from README.md's "Install" section. Any change requiring a re-submission (a new zip)
+> should bump `version` in `manifest.json` again and add a new `CHANGELOG.md` entry first.
